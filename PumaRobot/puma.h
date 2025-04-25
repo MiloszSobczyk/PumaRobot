@@ -31,6 +31,10 @@ namespace mini::gk2
 		dx_ptr<ID3D11Buffer> m_vbParticleSystem;
 		dx_ptr<ID3D11ShaderResourceView> m_particleTexture;
 
+		float radius = 0.5f;
+		DirectX::XMFLOAT4X4 mirrorTransform;
+		Mesh m_mirror;
+
 		float angles[MODEL_NUM];
 		DirectX::XMFLOAT4X4 m_modelWorldMatrices[MODEL_NUM];
 		Model model[MODEL_NUM];
@@ -64,6 +68,7 @@ namespace mini::gk2
 		void UpdateCameraCB(DirectX::XMMATRIX viewMtx);
 		void UpdateCameraCB() { UpdateCameraCB(m_camera.getViewMatrix()); }
 
+		void DrawMirror();
 		void DrawMesh(const Mesh& m, DirectX::XMFLOAT4X4 worldMtx);
 		void DrawCylinder();
 		void DrawBox();

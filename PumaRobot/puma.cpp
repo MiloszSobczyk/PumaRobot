@@ -25,6 +25,10 @@ Puma::Puma(HINSTANCE appInstance)
 	UpdateBuffer(m_cbProjMtx, m_projMtx);
 	UpdateCameraCB();
 
+	XMMATRIX transform = XMMatrixRotationX(XMConvertToRadians(30.f)) * XMMatrixTranslation(0.f, 0.f, 1.5f);
+	XMStoreFloat4x4(&mirrorTransform, transform);
+	m_mirror = Mesh::DoubleRect(m_device, radius * 3.f);
+
 	for (int i = 0; i < MODEL_NUM; i++)
 	{
 		angles[i] = -30.f * i;
@@ -154,7 +158,6 @@ void mini::gk2::Puma::inverse_kinematics(DirectX::XMVECTOR pos, DirectX::XMVECTO
 void mini::gk2::Puma::CalculateAnimation(const double& dt)
 {
 	const static float angleSpeed = 30.f;
-	const static float radius = 1.f;
 	static float angle = 0.f;
 
 	angle += static_cast<float>(dt) * angleSpeed;
@@ -163,17 +166,16 @@ void mini::gk2::Puma::CalculateAnimation(const double& dt)
 	float angleRad = XMConvertToRadians(angle);
 
 	float x = radius * cosf(angleRad);
-	float z = radius * sinf(angleRad);
-	float y = 5.f;
+	float z = 0.f;
+	float y = radius * sinf(angleRad);
 
 	XMVECTOR position = XMVectorSet(x, y, z, 1.0f);
 
-	XMVECTOR center = XMVectorSet(0.0f, y, 0.0f, 1.0f);
-	XMVECTOR normal = XMVector3Normalize(XMVectorSet(0.f, 1.f, 0.f, 1.0f));
+	XMVECTOR center = XMVectorSet(0.0f, 0.f, 0.f, 1.0f);
+	XMVECTOR normal = XMVectorSet(0.f, 0.f, -1.f, 1.0f);
 
-	const auto rotation = XMMatrixRotationZ(XMConvertToRadians(30.f));
-	position = XMVector3Transform(position, rotation);
-	normal = XMVector3TransformNormal(normal, rotation);
+	position = XMVector3Transform(position, XMLoadFloat4x4(&mirrorTransform));
+	normal = XMVector3TransformNormal(normal, XMLoadFloat4x4(&mirrorTransform));
 
 	inverse_kinematics(position, normal);
 }
@@ -236,6 +238,12 @@ void mini::gk2::Puma::SetTextures(std::initializer_list<ID3D11ShaderResourceView
 	m_device.context()->PSSetShaderResources(0, resList.size(), resList.begin());
 	auto s_ptr = sampler.get();
 	m_device.context()->PSSetSamplers(0, 1, &s_ptr);
+}
+
+void mini::gk2::Puma::DrawMirror()
+{
+	SetSurfaceColor({ 0.f, 0.75f, 0.f, 1.f });
+	DrawMesh(m_mirror, mirrorTransform);
 }
 
 void Puma::DrawMesh(const Mesh& m, DirectX::XMFLOAT4X4 worldMtx)
@@ -333,6 +341,7 @@ void Puma::DrawScene()
 	DrawCylinder();
 	DrawModel();
 	DrawBox();
+	DrawMirror();
 }
 
 void Puma::Render()
