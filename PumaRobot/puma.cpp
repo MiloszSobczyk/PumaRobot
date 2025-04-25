@@ -158,7 +158,8 @@ void mini::gk2::Puma::CalculateAnimation(const double& dt)
 	static float angle = 0.f;
 
 	angle += static_cast<float>(dt) * angleSpeed;
-
+	if (angle > 360.f)
+		angle -= 360.f;
 	float angleRad = XMConvertToRadians(angle);
 
 	float x = radius * cosf(angleRad);
