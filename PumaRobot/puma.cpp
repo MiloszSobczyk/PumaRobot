@@ -25,6 +25,11 @@ Puma::Puma(HINSTANCE appInstance)
 	UpdateBuffer(m_cbProjMtx, m_projMtx);
 	UpdateCameraCB();
 
+	for (int i = 0; i < MODEL_NUM; i++)
+	{
+		model[i].LoadModelFromFile("resources\\meshes\\mesh" + std::to_string(i + 1) + ".model");
+		m_model[i] = Mesh::ModelMesh(m_device, model[i]);
+	}
 	m_cylinder = Mesh::Cylinder(m_device, 100, 100, 3.f, 0.5f);
 	m_box = Mesh::ShadedBox(m_device, 5.f);
 
@@ -156,6 +161,15 @@ void mini::gk2::Puma::DrawBox()
 	DrawMesh(m_box, mtx);
 }
 
+void mini::gk2::Puma::DrawModel()
+{
+	XMFLOAT4X4 mtx;
+	XMStoreFloat4x4(&mtx, XMMatrixTranslation(0.f, 1.5f, 0.f));
+	SetSurfaceColor({ 214.f / 255.f, 212.f / 255.f, 67.f / 255.f, 1.f });
+	for(int i = 0; i < MODEL_NUM; i++)
+		DrawMesh(m_model[i], mtx);
+}
+
 void Puma::DrawScene()
 {
 	SetShaders(m_phongVS, m_phongPS);
@@ -163,7 +177,7 @@ void Puma::DrawScene()
 	UpdateCameraCB();
 
 	DrawCylinder();
-	DrawBox();
+	DrawModel();
 }
 
 void Puma::Render()

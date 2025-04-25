@@ -395,6 +395,30 @@ std::vector<unsigned short> mini::Mesh::DiskIdx(unsigned int slices)
 	return indices;
 }
 
+std::vector<VertexPositionNormal> mini::Mesh::ModelVerts(const Model& m)
+{
+	std::vector<VertexPositionNormal> vertices;
+	for (const VertexNormal& vertex : m.vertexNormals)
+	{
+		vertices.push_back({ { vertex.positionPtr->x, vertex.positionPtr->y, vertex.positionPtr->z }, { vertex.nx, vertex.ny, vertex.nz } });
+	}
+
+	return vertices;
+}
+
+std::vector<unsigned short> mini::Mesh::ModelIdx(const Model& m)
+{
+	std::vector<unsigned short> indices;
+	for (const Face& face : m.faces)
+	{
+		indices.push_back(face.vertexIdx1);
+		indices.push_back(face.vertexIdx2);
+		indices.push_back(face.vertexIdx3);
+	}
+
+	return indices;
+}
+
 Mesh mini::Mesh::LoadMesh(const DxDevice& device, const std::wstring& meshPath)
 {
 	//File format for VN vertices and IN indices (IN divisible by 3, i.e. IN/3 triangles):

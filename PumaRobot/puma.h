@@ -20,6 +20,7 @@ namespace mini::gk2
 	private:
 #pragma region CONSTANTS
 		static const DirectX::XMFLOAT4 LIGHT_POS;
+		static const unsigned int MODEL_NUM = 6;
 #pragma endregion
 		dx_ptr<ID3D11Buffer> m_cbWorldMtx, //vertex shader constant buffer slot 0
 			m_cbProjMtx;	//vertex shader constant buffer slot 2 & geometry shader constant buffer slot 0
@@ -30,6 +31,8 @@ namespace mini::gk2
 		dx_ptr<ID3D11Buffer> m_vbParticleSystem;
 		dx_ptr<ID3D11ShaderResourceView> m_particleTexture;
 
+		Model model[MODEL_NUM];
+		Mesh m_model[MODEL_NUM];
 		Mesh m_cylinder;
 		Mesh m_box;
 
@@ -59,6 +62,7 @@ namespace mini::gk2
 		void DrawMesh(const Mesh& m, DirectX::XMFLOAT4X4 worldMtx);
 		void DrawCylinder();
 		void DrawBox();
+		void DrawModel();
 
 		void SetWorldMtx(DirectX::XMFLOAT4X4 mtx);
 		void SetSurfaceColor(DirectX::XMFLOAT4 color);

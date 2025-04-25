@@ -6,6 +6,7 @@
 #include <D3D11.h>
 #include "vertexTypes.h"
 #include "dxDevice.h"
+#include "model.h"
 
 namespace mini
 {
@@ -105,6 +106,10 @@ namespace mini
 		static std::vector<VertexPositionNormal> DiskVerts(unsigned int slices, float radius = 1.0f);
 		static std::vector<unsigned short> DiskIdx(unsigned int slices);
 		static Mesh Disk(const DxDevice& device, unsigned int slices, float radius = 1.0f) { return SimpleTriMesh(device, DiskVerts(slices, radius), DiskIdx(slices)); }
+
+		static std::vector<VertexPositionNormal> ModelVerts(const Model& m);
+		static std::vector<unsigned short> ModelIdx(const Model& m);
+		static Mesh ModelMesh(const DxDevice& device, const Model& m) { return SimpleTriMesh(device, ModelVerts(m), ModelIdx(m)); }
 
 		//Mesh Loading
 		static Mesh LoadMesh(const DxDevice& device, const std::wstring& meshPath);
