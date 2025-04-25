@@ -25,7 +25,7 @@ Puma::Puma(HINSTANCE appInstance)
 	UpdateBuffer(m_cbProjMtx, m_projMtx);
 	UpdateCameraCB();
 
-	XMMATRIX transform = XMMatrixRotationX(XMConvertToRadians(30.f)) * XMMatrixTranslation(0.f, 0.f, 1.5f);
+	XMMATRIX transform =  XMMatrixRotationX(XMConvertToRadians(30.f)) * XMMatrixRotationY(XMConvertToRadians(-90.f))  * XMMatrixTranslation(-1.65f, 0.f, 0.f);
 	XMStoreFloat4x4(&mirrorTransform, transform);
 	m_mirror = Mesh::DoubleRect(m_device, radius * 3.f);
 
