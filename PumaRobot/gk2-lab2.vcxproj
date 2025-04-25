@@ -182,7 +182,7 @@
     <ClCompile Include="mesh.cpp" />
     <ClCompile Include="mouse.cpp" />
     <ClCompile Include="particleSystem.cpp" />
-    <ClCompile Include="roomDemo.cpp" />
+    <ClCompile Include="puma.cpp" />
     <ClCompile Include="textureGenerator.cpp" />
     <ClCompile Include="vertexTypes.cpp" />
     <ClCompile Include="WICTextureLoader.cpp" />
@@ -208,7 +208,7 @@
     <ClInclude Include="mouse.h" />
     <ClInclude Include="particleSystem.h" />
     <ClInclude Include="ptr_vector.h" />
-    <ClInclude Include="roomDemo.h" />
+    <ClInclude Include="puma.h" />
     <ClInclude Include="textureGenerator.h" />
     <ClInclude Include="vertexTypes.h" />
     <ClInclude Include="WICTextureLoader.h" />

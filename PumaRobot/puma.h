@@ -6,12 +6,12 @@
 
 namespace mini::gk2
 {
-	class RoomDemo : public DxApplication
+	class Puma : public DxApplication
 	{
 	public:
 		using Base = DxApplication;
 
-		explicit RoomDemo(HINSTANCE appInstance);
+		explicit Puma(HINSTANCE appInstance);
 
 	protected:
 		void Update(const Clock& dt) override;

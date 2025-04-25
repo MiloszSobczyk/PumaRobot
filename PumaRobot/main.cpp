@@ -1,5 +1,5 @@
 ﻿#include "exceptions.h"
-#include "roomDemo.h"
+#include "puma.h"
 
 using namespace std;
 using namespace mini;
@@ -13,31 +13,31 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE prevInstance, LPWSTR cmdLine,
 	CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 	try
 	{
-		RoomDemo app(hInstance);
+		Puma app(hInstance);
 		exitCode = app.Run();
 	}
 	catch (Exception& e)
 	{
-		MessageBoxW(nullptr, e.getMessage().c_str(), L"Błąd", MB_OK);
+		MessageBoxW(nullptr, e.getMessage().c_str(), L"Error", MB_OK);
 		exitCode = e.getExitCode();
 	}
 	catch (exception& e)
 	{
 		string s(e.what());
-		MessageBoxW(nullptr, wstring(s.begin(), s.end()).c_str(), L"Błąd", MB_OK);
+		MessageBoxW(nullptr, wstring(s.begin(), s.end()).c_str(), L"Error", MB_OK);
 	}
 	catch (const char* str)
 	{
 		string s(str);
-		MessageBoxW(nullptr, wstring(s.begin(), s.end()).c_str(), L"Błąd", MB_OK);
+		MessageBoxW(nullptr, wstring(s.begin(), s.end()).c_str(), L"Error", MB_OK);
 	}
 	catch (const wchar_t* str)
 	{
-		MessageBoxW(nullptr, str, L"Błąd", MB_OK);
+		MessageBoxW(nullptr, str, L"Error", MB_OK);
 	}
 	catch (...)
 	{
-		MessageBoxW(nullptr, L"Nieznany Błąd", L"Błąd", MB_OK);
+		MessageBoxW(nullptr, L"Unknown error", L"Error", MB_OK);
 	}
 	return exitCode;
 }

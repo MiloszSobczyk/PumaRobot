@@ -1,4 +1,4 @@
-﻿#include "roomDemo.h"
+#include "Puma.h"
 #include <array>
 #include "mesh.h"
 #include "textureGenerator.h"
@@ -8,12 +8,12 @@ using namespace gk2;
 using namespace DirectX;
 using namespace std;
 
-const XMFLOAT3 RoomDemo::TEAPOT_POS{ -1.3f, -0.74f, -0.6f };
-const XMFLOAT4 RoomDemo::TABLE_POS{ 0.5f, -0.96f, 0.5f, 1.0f };
-const XMFLOAT4 RoomDemo::LIGHT_POS[2] = { {1.0f, 1.0f, 1.0f, 1.0f}, {-1.0f, -1.0f, -1.0f, 1.0f} };
+const XMFLOAT3 Puma::TEAPOT_POS{ -1.3f, -0.74f, -0.6f };
+const XMFLOAT4 Puma::TABLE_POS{ 0.5f, -0.96f, 0.5f, 1.0f };
+const XMFLOAT4 Puma::LIGHT_POS[2] = { {1.0f, 1.0f, 1.0f, 1.0f}, {-1.0f, -1.0f, -1.0f, 1.0f} };
 
-RoomDemo::RoomDemo(HINSTANCE appInstance)
-	: DxApplication(appInstance, 1280, 720, L"Pokój"), 
+Puma::Puma(HINSTANCE appInstance)
+	: DxApplication(appInstance, 1280, 720, L"League of Legends"),
 	//Constant Buffers
 	m_cbWorldMtx(m_device.CreateConstantBuffer<XMFLOAT4X4>()),
 	m_cbProjMtx(m_device.CreateConstantBuffer<XMFLOAT4X4>()), m_cbTex1Mtx(m_device.CreateConstantBuffer<XMFLOAT4X4>()),
@@ -67,8 +67,8 @@ RoomDemo::RoomDemo(HINSTANCE appInstance)
 	constexpr auto woodTexWidth = 64U;
 	constexpr auto woodTexHeight = 64U;
 	constexpr auto woodTexBpp = 4U;
-	constexpr auto woodTexStride = woodTexWidth*woodTexBpp;
-	constexpr auto woodTexSize = woodTexStride*woodTexHeight;
+	constexpr auto woodTexStride = woodTexWidth * woodTexBpp;
+	constexpr auto woodTexSize = woodTexStride * woodTexHeight;
 
 	auto texDesc = Texture2DDescription(woodTexWidth, woodTexHeight);
 	texDesc.BindFlags |= D3D11_BIND_RENDER_TARGET;
@@ -125,10 +125,10 @@ RoomDemo::RoomDemo(HINSTANCE appInstance)
 	XMStoreFloat4x4(&m_wallsMtx[5], temp * XMMatrixRotationX(-XM_PIDIV2));
 	XMStoreFloat4x4(&m_teapotMtx, XMMatrixTranslation(0.0f, -2.3f, 0.f) * XMMatrixScaling(0.1f, 0.1f, 0.1f) *
 		XMMatrixRotationY(-XM_PIDIV2) * XMMatrixTranslation(-1.3f, -0.74f, -0.6f));
-	
+
 	XMStoreFloat4x4(&m_sphereMtx, XMMatrixRotationY(-XM_PIDIV2) * XMMatrixTranslation(TEAPOT_POS.x, TEAPOT_POS.y, TEAPOT_POS.z));
 	XMStoreFloat4x4(&m_boxMtx, XMMatrixTranslation(-1.4f, -1.46f, -0.6f));
-	XMStoreFloat4x4(&m_chairMtx, XMMatrixRotationY(XM_PI + XM_PI / 9 ) *
+	XMStoreFloat4x4(&m_chairMtx, XMMatrixRotationY(XM_PI + XM_PI / 9) *
 		XMMatrixTranslation(-0.1f, -1.06f, -1.3f));
 	XMStoreFloat4x4(&m_monitorMtx, XMMatrixRotationY(XM_PIDIV4) *
 		XMMatrixTranslation(TABLE_POS.x, TABLE_POS.y + 0.42f, TABLE_POS.z));
@@ -151,7 +151,7 @@ RoomDemo::RoomDemo(HINSTANCE appInstance)
 		XMMatrixRotationZ((20.0f / 360.0f) * XM_PI) *
 		XMMatrixScaling(1.0f, -0.75f, 1.0f) *
 		XMMatrixTranslation(0.8f, 0.0f, 0.0f));
-	
+
 	UpdateBuffer(m_cbTex2Mtx, tempMtx);
 
 	//Render states
@@ -203,7 +203,7 @@ RoomDemo::RoomDemo(HINSTANCE appInstance)
 	m_device.context()->PSSetConstantBuffers(0, 2, psb); //Pixel Shaders - 0: surfaceColor, 1: lightPos[2]
 }
 
-void RoomDemo::UpdateCameraCB(XMMATRIX viewMtx)
+void Puma::UpdateCameraCB(XMMATRIX viewMtx)
 {
 	XMVECTOR det;
 	XMMATRIX invViewMtx = XMMatrixInverse(&det, viewMtx);
@@ -213,24 +213,24 @@ void RoomDemo::UpdateCameraCB(XMMATRIX viewMtx)
 	UpdateBuffer(m_cbViewMtx, view);
 }
 
-void RoomDemo::UpdateLamp(float dt)
+void Puma::UpdateLamp(float dt)
 {
 	static auto time = 0.0f;
 	time += dt;
-	auto swing = 0.3f * XMScalarSin(XM_2PI*time / 8);
-	auto rot = XM_2PI*time / 20;
+	auto swing = 0.3f * XMScalarSin(XM_2PI * time / 8);
+	auto rot = XM_2PI * time / 20;
 	auto lamp = XMMatrixTranslation(0.0f, -0.4f, 0.0f) * XMMatrixRotationX(swing) * XMMatrixRotationY(rot) *
 		XMMatrixTranslation(0.0f, 2.0f, 0.0f);
 	XMStoreFloat4x4(&m_lampMtx, lamp);
 }
 
-void mini::gk2::RoomDemo::UpdateParticles(float dt)
+void mini::gk2::Puma::UpdateParticles(float dt)
 {
 	// DONE : 1.31 update particle system and copy vertex data to the buffer
 	UpdateBuffer(m_vbParticles, m_particles.Update(dt, m_camera.getCameraPosition()));
 }
 
-void RoomDemo::Update(const Clock& c)
+void Puma::Update(const Clock& c)
 {
 	double dt = c.getFrameTime();
 	HandleCameraInput(dt);
@@ -238,36 +238,36 @@ void RoomDemo::Update(const Clock& c)
 	UpdateParticles(dt);
 }
 
-void RoomDemo::SetWorldMtx(DirectX::XMFLOAT4X4 mtx)
+void Puma::SetWorldMtx(DirectX::XMFLOAT4X4 mtx)
 {
 	UpdateBuffer(m_cbWorldMtx, mtx);
 }
 
-void RoomDemo::SetSurfaceColor(DirectX::XMFLOAT4 color)
+void Puma::SetSurfaceColor(DirectX::XMFLOAT4 color)
 {
 	UpdateBuffer(m_cbSurfaceColor, color);
 }
 
-void mini::gk2::RoomDemo::SetShaders(const dx_ptr<ID3D11VertexShader>& vs, const dx_ptr<ID3D11PixelShader>& ps)
+void mini::gk2::Puma::SetShaders(const dx_ptr<ID3D11VertexShader>& vs, const dx_ptr<ID3D11PixelShader>& ps)
 {
 	m_device.context()->VSSetShader(vs.get(), nullptr, 0);
 	m_device.context()->PSSetShader(ps.get(), nullptr, 0);
 }
 
-void mini::gk2::RoomDemo::SetTextures(std::initializer_list<ID3D11ShaderResourceView*> resList, const dx_ptr<ID3D11SamplerState>& sampler)
+void mini::gk2::Puma::SetTextures(std::initializer_list<ID3D11ShaderResourceView*> resList, const dx_ptr<ID3D11SamplerState>& sampler)
 {
 	m_device.context()->PSSetShaderResources(0, resList.size(), resList.begin());
 	auto s_ptr = sampler.get();
 	m_device.context()->PSSetSamplers(0, 1, &s_ptr);
 }
 
-void RoomDemo::DrawMesh(const Mesh& m, DirectX::XMFLOAT4X4 worldMtx)
+void Puma::DrawMesh(const Mesh& m, DirectX::XMFLOAT4X4 worldMtx)
 {
 	SetWorldMtx(worldMtx);
 	m.Render(m_device.context());
 }
 
-void RoomDemo::DrawParticles()
+void Puma::DrawParticles()
 {
 	if (m_particles.particlesCount() == 0)
 		return;
@@ -289,7 +289,7 @@ void RoomDemo::DrawParticles()
 	m_device.context()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
-void RoomDemo::DrawWalls()
+void Puma::DrawWalls()
 {
 	//draw ceiling
 	XMFLOAT4X4 texMtx;
@@ -312,10 +312,10 @@ void RoomDemo::DrawWalls()
 
 	//draw back wall
 	SetSurfaceColor(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
-	
+
 	// DONE : 1.04 Draw back wall with muliti-texture shaders, setting textures to wall and poster.
-	SetShaders (m_multiTexVS, m_multiTexPS);
-	
+	SetShaders(m_multiTexVS, m_multiTexPS);
+
 	// DONE : 1.07 Pass the new sampler state along with wall and poster textures
 	SetTextures({ m_wallTexture.get(), m_posterTexture.get() }, m_samplerState2);
 
@@ -343,7 +343,7 @@ void RoomDemo::DrawWalls()
 	DrawMesh(m_wall, m_wallsMtx[4]);
 }
 
-void RoomDemo::DrawTeapot()
+void Puma::DrawTeapot()
 {
 	// DONE : 1.25 Comment the following line and begin m_envMapper shaders instead
 	//SetShaders(m_phongVS, m_phongPS);
@@ -358,7 +358,7 @@ void RoomDemo::DrawTeapot()
 	SetSurfaceColor(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
 }
 
-void RoomDemo::DrawTableElement(Mesh& m, DirectX::XMFLOAT4X4 worldMtx)
+void Puma::DrawTableElement(Mesh& m, DirectX::XMFLOAT4X4 worldMtx)
 {
 	SetWorldMtx(worldMtx);
 	m_device.context()->RSSetState(m_rsCullFront.get());
@@ -367,7 +367,7 @@ void RoomDemo::DrawTableElement(Mesh& m, DirectX::XMFLOAT4X4 worldMtx)
 	m.Render(m_device.context());
 }
 
-void RoomDemo::DrawTableLegs(XMVECTOR camVec)
+void Puma::DrawTableLegs(XMVECTOR camVec)
 {
 	XMFLOAT4 v(1.0f, 0.0f, 0.0f, 0.0f);
 	auto plane1 = XMLoadFloat4(&v);
@@ -412,7 +412,7 @@ void RoomDemo::DrawTableLegs(XMVECTOR camVec)
 	}
 }
 
-void RoomDemo::DrawTransparentObjects()
+void Puma::DrawTransparentObjects()
 {
 	m_device.context()->OMSetBlendState(m_bsAlpha.get(), nullptr, UINT_MAX);
 	m_device.context()->OMSetDepthStencilState(m_dssNoWrite.get(), 0);
@@ -448,7 +448,7 @@ void RoomDemo::DrawTransparentObjects()
 	m_device.context()->OMSetDepthStencilState(nullptr, 0);
 }
 
-void RoomDemo::DrawScene()
+void Puma::DrawScene()
 {
 	DrawWalls();
 	DrawTeapot();
@@ -469,7 +469,7 @@ void RoomDemo::DrawScene()
 	DrawTransparentObjects();
 }
 
-void RoomDemo::Render()
+void Puma::Render()
 {
 	Base::Render();
 	// DONE : 1.20 Change projection matrix to for drawing in environment cube
@@ -480,7 +480,7 @@ void RoomDemo::Render()
 	m_envMapper.SetTarget(m_device.context());
 
 	// DONE : 1.22 For each cube face: clear envMapper render target, update camera constant buffer, draw the scene and copy the result to cubemap
-	for (int i = 0; i < 6; ++i) 
+	for (int i = 0; i < 6; ++i)
 	{
 		auto face = static_cast<D3D11_TEXTURECUBE_FACE> (i);
 		auto viewMtx = m_envMapper.FaceViewMtx(face);
