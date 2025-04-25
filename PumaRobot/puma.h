@@ -70,6 +70,7 @@ namespace mini::gk2
 		void SetTextures(std::initializer_list<ID3D11ShaderResourceView*> resList, const dx_ptr<ID3D11SamplerState>& sampler);
 		void SetTextures(std::initializer_list<ID3D11ShaderResourceView*> resList) { SetTextures(std::move(resList), m_samplerWrap); }
 
+		bool HandleCameraInput(double dt) override;
 
 		void DrawScene();
 	};

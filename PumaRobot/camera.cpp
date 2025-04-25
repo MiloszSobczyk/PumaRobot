@@ -3,8 +3,8 @@
 using namespace mini;
 using namespace DirectX;
 
-OrbitCamera::OrbitCamera(XMFLOAT3 target, float minDist, float maxDist, float dist)
-	: m_angleX(0), m_angleY(0), m_target(target.x, target.y, target.z, 1.0f), m_distance(dist)
+OrbitCamera::OrbitCamera(XMFLOAT3 target, float minDist, float maxDist, float dist, float angleX, float angleY)
+	: m_angleX(angleX), m_angleY(angleY), m_target(target.x, target.y, target.z, 1.0f), m_distance(dist)
 {
 	SetDistanceRange(minDist, maxDist);
 }

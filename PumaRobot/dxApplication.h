@@ -41,7 +41,7 @@ namespace mini
 			UpdateBuffer(buffer, data.data(), data.size() * sizeof(T));
 		}
 
-		bool HandleCameraInput(double dt);
+		virtual bool HandleCameraInput(double dt);
 
 		//***************** NEW *****************
 
@@ -56,8 +56,9 @@ namespace mini
 
 		static constexpr float ROTATION_SPEED = 0.01f;
 		static constexpr float ZOOM_SPEED = 0.02f;
+		static constexpr float MOVE_SPEED = 4.f;
 
-		OrbitCamera m_camera;
+		FPSCamera m_camera;
 
 	private:
 
@@ -65,6 +66,5 @@ namespace mini
 		mini::dx_ptr<ID3D11DepthStencilView> m_depthBuffer;
 		Viewport m_viewport;
 		Clock m_clock;
-
 	};
 }

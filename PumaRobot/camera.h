@@ -15,7 +15,7 @@ namespace mini
 	{
 	public:
 		explicit OrbitCamera(DirectX::XMFLOAT3 target = DirectX::XMFLOAT3(0, 0, 0), 
-			float minDistance = 0.0f, float maxDistance = FLT_MAX, float distance = 0.0f);
+			float minDistance = 0.0f, float maxDistance = FLT_MAX, float distance = 0.0f, float angleX = 0.f, float angleY = 0.f);
 		explicit OrbitCamera(float minDistance, float maxDistance = FLT_MAX, float distance = 0.0f);
 		
 		DirectX::XMMATRIX getViewMatrix() const override;
@@ -43,8 +43,8 @@ namespace mini
 	class FPSCamera : public OrbitCamera
 	{
 	public:
-		explicit FPSCamera(DirectX::XMFLOAT3 target)
-			: OrbitCamera(target, 0.0f, 0.0f)
+		explicit FPSCamera(DirectX::XMFLOAT3 target, float angleX = 0.f, float angleY = 0.f)
+			: OrbitCamera(target, 0.0f, 0.0f, angleX, angleY)
 		{ }
 
 		using OrbitCamera::MoveTarget;

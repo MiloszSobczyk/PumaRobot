@@ -170,6 +170,61 @@ void mini::gk2::Puma::DrawModel()
 		DrawMesh(m_model[i], mtx);
 }
 
+bool mini::gk2::Puma::HandleCameraInput(double dt)
+{
+	MouseState mstate;
+	KeyboardState kbState;
+	bool moved = false;
+	if (!m_mouse.GetState(mstate))
+		return false;
+
+	if (!m_keyboard.GetState(kbState))
+		return false;
+
+	auto d = mstate.getMousePositionChange();
+	if (mstate.isButtonDown(0))
+	{
+		m_camera.Rotate(d.y * ROTATION_SPEED, d.x * ROTATION_SPEED);
+		moved = true;
+	}
+	else if (mstate.isButtonDown(1))
+	{
+		m_camera.Zoom(d.y * ZOOM_SPEED);
+		moved = true;
+	}
+
+	XMVECTOR moveVec = XMVectorZero();
+	float moveSpeed = MOVE_SPEED * dt; // Units per second
+
+	if (kbState.isKeyDown(DIK_W))
+		moveVec += m_camera.getForwardDir(); // world forward (+Z)
+
+	if (kbState.isKeyDown(DIK_S))
+		moveVec -= m_camera.getForwardDir(); // world backward (-Z)
+
+	if (kbState.isKeyDown(DIK_A))
+		moveVec -= m_camera.getRightDir(); // world left (-X)
+
+	if (kbState.isKeyDown(DIK_D))
+		moveVec += m_camera.getRightDir();  // world right (+X)
+
+	if (kbState.isKeyDown(DIK_Q))
+		moveVec += XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f);  // world up (+Y)
+
+	if (kbState.isKeyDown(DIK_E))
+		moveVec += XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f); // world down (-Y)
+
+	if (!XMVector3Equal(moveVec, XMVectorZero()))
+	{
+		moved = true;
+		moveVec = XMVector3Normalize(moveVec);
+		moveVec = XMVectorScale(moveVec, moveSpeed);
+		m_camera.MoveTarget(moveVec);
+	}
+
+	return moved;
+}
+
 void Puma::DrawScene()
 {
 	SetShaders(m_phongVS, m_phongPS);
