@@ -27,6 +27,7 @@ Puma::Puma(HINSTANCE appInstance)
 
 	for (int i = 0; i < MODEL_NUM; i++)
 	{
+		angles[i] = -30.f * i;
 		model[i].LoadModelFromFile("resources\\meshes\\mesh" + std::to_string(i + 1) + ".model");
 		m_model[i] = Mesh::ModelMesh(m_device, model[i]);
 	}
@@ -100,6 +101,83 @@ Puma::Puma(HINSTANCE appInstance)
 	m_device.context()->PSSetConstantBuffers(0, 2, psb); //Pixel Shaders - 0: surfaceColor, 1: lightPos
 }
 
+void mini::gk2::Puma::inverse_kinematics(DirectX::XMVECTOR pos, DirectX::XMVECTOR normal)
+{
+	const float l1 = 0.91f, l2 = 0.81f, l3 = 0.33f;
+	const float dy = 0.27f, dz = 0.26f;
+
+	// Normalize the normal vector
+	normal = XMVector3Normalize(normal);
+
+	// Compute the wrist position (back from the tool tip)
+	XMVECTOR pos1 = pos + normal * l3;
+
+	// Extract position components
+	float x1 = XMVectorGetX(pos1);
+	float y1 = XMVectorGetY(pos1);
+	float z1 = XMVectorGetZ(pos1);
+
+	// Compute projection in XZ-plane
+	float e = sqrtf(z1 * z1 + x1 * x1 - dz * dz);
+	angles[1] = atan2f(z1, -x1) + atan2f(dz, e);
+
+	// Planar position for arm in Y-e plane
+	XMVECTOR pos2 = XMVectorSet(e, y1 - dy, 0.0f, 0.0f);
+	float px = XMVectorGetX(pos2);
+	float py = XMVectorGetY(pos2);
+
+	// Compute angle a3 (elbow)
+	float len_sq = px * px + py * py;
+	float cos_a3 = (len_sq - l1 * l1 - l2 * l2) / (2.0f * l1 * l2);
+	cos_a3 = min(1.0f, max(-1.0f, cos_a3)); // clamp for safety
+	angles[3] = -acosf(cos_a3);
+
+	// Compute angle a2 (shoulder)
+	float k = l1 + l2 * cosf(angles[3]);
+	float l = l2 * sinf(angles[3]);
+	angles[2] = -atan2f(py, sqrtf(px * px)) - atan2f(l, k);
+
+	// Compute rotation of normal back through inverse joints
+	XMMATRIX invRotY = XMMatrixRotationY(-angles[1]);
+	XMMATRIX invRotZ = XMMatrixRotationZ(-(angles[2] + angles[3]));
+	XMVECTOR normal1 = XMVector3TransformNormal(normal, invRotY);
+	normal1 = XMVector3TransformNormal(normal1, invRotZ);
+
+	float nx = XMVectorGetX(normal1);
+	float ny = XMVectorGetY(normal1);
+	float nz = XMVectorGetZ(normal1);
+
+	angles[5] = acosf(nx); // assuming this is the twist of the end-effector
+	angles[4] = atan2f(nz, ny);
+}
+
+void mini::gk2::Puma::CalculateAnimation(const double& dt)
+{
+	const static float angleSpeed = 30.f;
+	const static float radius = 1.f;
+	static float angle = 0.f;
+
+	angle += static_cast<float>(dt) * angleSpeed;
+	if (angle > 360.f)
+		angle -= 360.f;
+	float angleRad = XMConvertToRadians(angle);
+
+	float x = radius * cosf(angleRad);
+	float z = radius * sinf(angleRad);
+	float y = 5.f;
+
+	XMVECTOR position = XMVectorSet(x, y, z, 1.0f);
+
+	XMVECTOR center = XMVectorSet(0.0f, y, 0.0f, 1.0f);
+	XMVECTOR normal = XMVector3Normalize(XMVectorSet(0.f, 1.f, 0.f, 1.0f));
+
+	const auto rotation = XMMatrixRotationZ(XMConvertToRadians(30.f));
+	position = XMVector3Transform(position, rotation);
+	normal = XMVector3TransformNormal(normal, rotation);
+
+	inverse_kinematics(position, normal);
+}
+
 void Puma::UpdateCameraCB(XMMATRIX viewMtx)
 {
 	XMVECTOR det;
@@ -114,6 +192,27 @@ void Puma::Update(const Clock& c)
 {
 	double dt = c.getFrameTime();
 	HandleCameraInput(dt);
+
+	CalculateAnimation(dt);
+	SetupWorldMatrices();
+}
+
+void mini::gk2::Puma::SetupWorldMatrices()
+{
+	XMMATRIX worldMtx[MODEL_NUM];
+
+	worldMtx[0] = XMMatrixIdentity();
+	worldMtx[1] = XMMatrixRotationY(angles[1]);
+	worldMtx[2] = XMMatrixTranslation(0.f, -0.27f, 0.f) * XMMatrixRotationZ(angles[2]) * XMMatrixTranslation(0.f, 0.27f, 0.f) * worldMtx[1];
+	worldMtx[3] = XMMatrixTranslation(0.91f, -0.27f, 0.f) * XMMatrixRotationZ(angles[3]) * XMMatrixTranslation(-0.91f, 0.27f, 0.f) * worldMtx[2];
+	worldMtx[4] = XMMatrixTranslation(0.f, -0.27f, 0.26f) * XMMatrixRotationX(angles[4]) * XMMatrixTranslation(0.f, 0.27f, -0.26f) * worldMtx[3];
+	worldMtx[5] = XMMatrixTranslation(1.72f, -0.27f, 0.f) * XMMatrixRotationZ(angles[5]) * XMMatrixTranslation(-1.72f, 0.27f, 0.f) * worldMtx[4];
+
+
+	for (int i = 0; i < MODEL_NUM; i++)
+	{
+		XMStoreFloat4x4(&m_modelWorldMatrices[i], worldMtx[i]);
+	}
 }
 
 void Puma::SetWorldMtx(DirectX::XMFLOAT4X4 mtx)
@@ -163,11 +262,11 @@ void mini::gk2::Puma::DrawBox()
 
 void mini::gk2::Puma::DrawModel()
 {
-	XMFLOAT4X4 mtx;
-	XMStoreFloat4x4(&mtx, XMMatrixTranslation(0.f, 1.5f, 0.f));
 	SetSurfaceColor({ 214.f / 255.f, 212.f / 255.f, 67.f / 255.f, 1.f });
-	for(int i = 0; i < MODEL_NUM; i++)
-		DrawMesh(m_model[i], mtx);
+	for (int i = 0; i < MODEL_NUM; i++)
+	{
+		DrawMesh(m_model[i], m_modelWorldMatrices[i]);
+	}
 }
 
 bool mini::gk2::Puma::HandleCameraInput(double dt)
