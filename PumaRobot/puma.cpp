@@ -27,6 +27,7 @@ Puma::Puma(HINSTANCE appInstance)
 
 	for (int i = 0; i < MODEL_NUM; i++)
 	{
+		angles[i] = -30.f * i;
 		model[i].LoadModelFromFile("resources\\meshes\\mesh" + std::to_string(i + 1) + ".model");
 		m_model[i] = Mesh::ModelMesh(m_device, model[i]);
 	}
@@ -114,6 +115,26 @@ void Puma::Update(const Clock& c)
 {
 	double dt = c.getFrameTime();
 	HandleCameraInput(dt);
+
+	SetupWorldMatrices();
+}
+
+void mini::gk2::Puma::SetupWorldMatrices()
+{
+	XMMATRIX worldMtx[MODEL_NUM];
+
+	worldMtx[0] = XMMatrixIdentity();
+	worldMtx[1] = XMMatrixRotationY(XMConvertToRadians(angles[1]));
+	worldMtx[2] = XMMatrixTranslation(0.f, -0.27f, 0.f) * XMMatrixRotationZ(XMConvertToRadians(angles[2])) * XMMatrixTranslation(0.f, 0.27f, 0.f) * worldMtx[1];
+	worldMtx[3] = XMMatrixTranslation(0.91f, -0.27f, 0.f) * XMMatrixRotationZ(XMConvertToRadians(angles[3])) * XMMatrixTranslation(-0.91f, 0.27f, 0.f) * worldMtx[2];
+	worldMtx[4] = XMMatrixTranslation(0.f, -0.27f, 0.26f) * XMMatrixRotationX(XMConvertToRadians(angles[4])) * XMMatrixTranslation(0.f, 0.27f, -0.26f) * worldMtx[3];
+	worldMtx[5] = XMMatrixTranslation(1.72f, -0.27f, 0.f) * XMMatrixRotationZ(XMConvertToRadians(angles[5])) * XMMatrixTranslation(-1.72f, 0.27f, 0.f) * worldMtx[4];
+
+
+	for (int i = 0; i < MODEL_NUM; i++)
+	{
+		XMStoreFloat4x4(&m_modelWorldMatrices[i], worldMtx[i]);
+	}
 }
 
 void Puma::SetWorldMtx(DirectX::XMFLOAT4X4 mtx)
@@ -163,11 +184,11 @@ void mini::gk2::Puma::DrawBox()
 
 void mini::gk2::Puma::DrawModel()
 {
-	XMFLOAT4X4 mtx;
-	XMStoreFloat4x4(&mtx, XMMatrixTranslation(0.f, 1.5f, 0.f));
 	SetSurfaceColor({ 214.f / 255.f, 212.f / 255.f, 67.f / 255.f, 1.f });
-	for(int i = 0; i < MODEL_NUM; i++)
-		DrawMesh(m_model[i], mtx);
+	for (int i = 0; i < MODEL_NUM; i++)
+	{
+		DrawMesh(m_model[i], m_modelWorldMatrices[i]);
+	}
 }
 
 void Puma::DrawScene()
