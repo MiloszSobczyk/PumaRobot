@@ -59,11 +59,16 @@ namespace mini
 		static std::vector<VertexPositionColor> ColoredBoxVerts(float side = 1.0f) { return ColoredBoxVerts(side, side, side); }
 		static std::vector<VertexPositionNormal> ShadedBoxVerts(float width, float height, float depth);
 		static std::vector<VertexPositionNormal> ShadedBoxVerts(float side = 1.0f) { return ShadedBoxVerts(side, side, side); }
+		static std::vector<VertexPositionNormal> InvertedShadedBoxVerts(float width, float height, float depth);
+		static std::vector<VertexPositionNormal> InvertedShadedBoxVerts(float side = 1.0f) { return InvertedShadedBoxVerts(side, side, side); }
+
 		static std::vector<unsigned short> BoxIdxs();
 		static Mesh ColoredBox(const DxDevice& device, float width, float height, float depth) { return SimpleTriMesh(device, ColoredBoxVerts(width, height, depth), BoxIdxs()); }
 		static Mesh ColoredBox(const DxDevice& device, float side = 1.0f) { return ColoredBox(device, side, side, side); }
 		static Mesh ShadedBox(const DxDevice& device, float width, float height, float depth) { return SimpleTriMesh(device, ShadedBoxVerts(width, height, depth), BoxIdxs()); }
 		static Mesh ShadedBox(const DxDevice& device, float side = 1.0f) { return ShadedBox(device, side, side, side); }
+		static Mesh InvertedShadedBox(const DxDevice& device, float width, float height, float depth) { return SimpleTriMesh(device, InvertedShadedBoxVerts(width, height, depth), BoxIdxs()); }
+		static Mesh InvertedShadedBox(const DxDevice& device, float side = 1.0f) { return InvertedShadedBox(device, side, side, side); }
 
 		//Pentagon Mesh Creation
 

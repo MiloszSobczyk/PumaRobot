@@ -151,6 +151,41 @@ std::vector<VertexPositionNormal> mini::Mesh::ShadedBoxVerts(float width, float 
 	};
 }
 
+std::vector<VertexPositionNormal> mini::Mesh::InvertedShadedBoxVerts(float width, float height, float depth)
+{
+	return {
+		{ { -0.5f * width, +0.5f * height, -0.5f * depth }, { 0.0f, 0.0f, 1.0f } },
+		{ { +0.5f * width, +0.5f * height, -0.5f * depth }, { 0.0f, 0.0f, 1.0f } },
+		{ { +0.5f * width, -0.5f * height, -0.5f * depth }, { 0.0f, 0.0f, 1.0f } },
+		{ { -0.5f * width, -0.5f * height, -0.5f * depth }, { 0.0f, 0.0f, 1.0f } },
+
+		{ { +0.5f * width, +0.5f * height, +0.5f * depth }, { 0.0f, 0.0f, -1.0f } },
+		{ { -0.5f * width, +0.5f * height, +0.5f * depth }, { 0.0f, 0.0f, -1.0f } },
+		{ { -0.5f * width, -0.5f * height, +0.5f * depth }, { 0.0f, 0.0f, -1.0f } },
+		{ { +0.5f * width, -0.5f * height, +0.5f * depth }, { 0.0f, 0.0f, -1.0f } },
+
+		{ { -0.5f * width, +0.5f * height, +0.5f * depth }, { 1.0f, 0.0f, 0.0f } },
+		{ { -0.5f * width, +0.5f * height, -0.5f * depth }, { 1.0f, 0.0f, 0.0f } },
+		{ { -0.5f * width, -0.5f * height, -0.5f * depth }, { 1.0f, 0.0f, 0.0f } },
+		{ { -0.5f * width, -0.5f * height, +0.5f * depth }, { 1.0f, 0.0f, 0.0f } },
+
+		{ { +0.5f * width, +0.5f * height, -0.5f * depth }, { -1.0f, 0.0f, 0.0f } },
+		{ { +0.5f * width, +0.5f * height, +0.5f * depth }, { -1.0f, 0.0f, 0.0f } },
+		{ { +0.5f * width, -0.5f * height, +0.5f * depth }, { -1.0f, 0.0f, 0.0f } },
+		{ { +0.5f * width, -0.5f * height, -0.5f * depth }, { -1.0f, 0.0f, 0.0f } },
+
+		{ { -0.5f * width, -0.5f * height, -0.5f * depth }, { 0.0f, 1.0f, 0.0f } },
+		{ { +0.5f * width, -0.5f * height, -0.5f * depth }, { 0.0f, 1.0f, 0.0f } },
+		{ { +0.5f * width, -0.5f * height, +0.5f * depth }, { 0.0f, 1.0f, 0.0f } },
+		{ { -0.5f * width, -0.5f * height, +0.5f * depth }, { 0.0f, 1.0f, 0.0f } },
+
+		{ { -0.5f * width, +0.5f * height, +0.5f * depth }, { 0.0f, -1.0f, 0.0f } },
+		{ { +0.5f * width, +0.5f * height, +0.5f * depth }, { 0.0f, -1.0f, 0.0f } },
+		{ { +0.5f * width, +0.5f * height, -0.5f * depth }, { 0.0f, -1.0f, 0.0f } },
+		{ { -0.5f * width, +0.5f * height, -0.5f * depth }, { 0.0f, -1.0f, 0.0f } },
+	};
+}
+
 std::vector<unsigned short> mini::Mesh::BoxIdxs()
 {
 	return {
@@ -310,7 +345,7 @@ std::vector<VertexPositionNormal> mini::Mesh::CylinderVerts(unsigned int stacks,
 {
 	assert(stacks > 0 && slices > 1);
 	auto n = (stacks + 1) * slices;
-	vector<VertexPositionNormal> vertices(n);
+	std::vector<VertexPositionNormal> vertices(n);
 	auto y = height / 2;
 	auto dy = height / stacks;
 	auto dp = XM_2PI / slices;
@@ -326,36 +361,75 @@ std::vector<VertexPositionNormal> mini::Mesh::CylinderVerts(unsigned int stacks,
 			vertices[k++].normal = XMFLOAT3(cosp, 0, sinp);
 		}
 	}
+
+	// Top and bottom center vertices
+	VertexPositionNormal topCenter, bottomCenter;
+	topCenter.position = XMFLOAT3(0.0f, height / 2, 0.0f);
+	topCenter.normal = XMFLOAT3(0.0f, 1.0f, 0.0f);
+	bottomCenter.position = XMFLOAT3(0.0f, -height / 2, 0.0f);
+	bottomCenter.normal = XMFLOAT3(0.0f, -1.0f, 0.0f);
+	vertices.push_back(topCenter);
+	vertices.push_back(bottomCenter);
+
 	return vertices;
 }
+
 
 std::vector<unsigned short> mini::Mesh::CylinderIdx(unsigned int stacks, unsigned int slices)
 {
 	assert(stacks > 0 && slices > 1);
-	auto in = 6 * stacks * slices;
-	vector<unsigned short> indices(in);
-	auto k = 0U;
+	std::vector<unsigned short> indices;
+	indices.reserve(6 * stacks * slices + 6 * slices); // sides + caps
+
 	for (auto i = 0U; i < stacks; ++i)
 	{
 		auto j = 0U;
 		for (; j < slices - 1; ++j)
 		{
-			indices[k++] = i * slices + j;
-			indices[k++] = i * slices + j + 1;
-			indices[k++] = (i + 1) * slices + j + 1;
-			indices[k++] = i * slices + j;
-			indices[k++] = (i + 1) * slices + j + 1;
-			indices[k++] = (i + 1) * slices + j;
+			indices.push_back(i * slices + j);
+			indices.push_back(i * slices + j + 1);
+			indices.push_back((i + 1) * slices + j + 1);
+			indices.push_back(i * slices + j);
+			indices.push_back((i + 1) * slices + j + 1);
+			indices.push_back((i + 1) * slices + j);
 		}
-		indices[k++] = i * slices + j;
-		indices[k++] = i * slices;
-		indices[k++] = (i + 1) * slices;
-		indices[k++] = i * slices + j;
-		indices[k++] = (i + 1) * slices;
-		indices[k++] = (i + 1) * slices + j;
+		indices.push_back(i * slices + j);
+		indices.push_back(i * slices);
+		indices.push_back((i + 1) * slices);
+		indices.push_back(i * slices + j);
+		indices.push_back((i + 1) * slices);
+		indices.push_back((i + 1) * slices + j);
 	}
+
+	// Top and bottom center indices
+	auto topCenterIdx = (stacks + 1) * slices;
+	auto bottomCenterIdx = topCenterIdx + 1;
+
+	// Top cap
+	for (auto j = 0U; j < slices - 1; ++j)
+	{
+		indices.push_back(topCenterIdx);
+		indices.push_back(j + 1);
+		indices.push_back(j);
+	}
+	indices.push_back(topCenterIdx);
+	indices.push_back(0);
+	indices.push_back(slices - 1);
+
+	// Bottom cap
+	for (auto j = 0U; j < slices - 1; ++j)
+	{
+		indices.push_back(bottomCenterIdx);
+		indices.push_back((stacks)*slices + j);
+		indices.push_back((stacks)*slices + j + 1);
+	}
+	indices.push_back(bottomCenterIdx);
+	indices.push_back((stacks)*slices + slices - 1);
+	indices.push_back((stacks)*slices);
+
 	return indices;
 }
+
 
 std::vector<VertexPositionNormal> mini::Mesh::DiskVerts(unsigned int slices, float radius)
 {

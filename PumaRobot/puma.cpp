@@ -31,7 +31,7 @@ Puma::Puma(HINSTANCE appInstance)
 		m_model[i] = Mesh::ModelMesh(m_device, model[i]);
 	}
 	m_cylinder = Mesh::Cylinder(m_device, 100, 100, 3.f, 0.5f);
-	m_box = Mesh::ShadedBox(m_device, 5.f);
+	m_box = Mesh::InvertedShadedBox(m_device, 5.f);
 
 	//Constant buffers content
 	UpdateBuffer(m_cbLightPos, LIGHT_POS);
@@ -233,6 +233,7 @@ void Puma::DrawScene()
 
 	DrawCylinder();
 	DrawModel();
+	DrawBox();
 }
 
 void Puma::Render()
