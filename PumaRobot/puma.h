@@ -58,9 +58,11 @@ namespace mini::gk2
 		dx_ptr<ID3D11GeometryShader> m_particleGS;
 		dx_ptr<ID3D11PixelShader> m_phongPS, m_particlePS;
 
+		void inverse_kinematics(DirectX::XMVECTOR pos, DirectX::XMVECTOR normal);
+		void CalculateAnimation(const double& dt);
+
 		void UpdateCameraCB(DirectX::XMMATRIX viewMtx);
 		void UpdateCameraCB() { UpdateCameraCB(m_camera.getViewMatrix()); }
-
 
 		void DrawMesh(const Mesh& m, DirectX::XMFLOAT4X4 worldMtx);
 		void DrawCylinder();
