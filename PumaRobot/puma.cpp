@@ -7,6 +7,7 @@ using namespace gk2;
 using namespace DirectX;
 using namespace std;
 const XMFLOAT4 Puma::LIGHT_POS = { 2.0f, 3.0f, 3.0f, 1.0f };
+const DirectX::XMVECTOR Puma::MIRROR_NORMAL = { 0.f, 0.f, -1.f, 1.f };
 
 Puma::Puma(HINSTANCE appInstance)
 	: DxApplication(appInstance, 1280, 720, L"League of Legends"),
@@ -25,7 +26,7 @@ Puma::Puma(HINSTANCE appInstance)
 	UpdateBuffer(m_cbProjMtx, m_projMtx);
 	UpdateCameraCB();
 
-	XMMATRIX transform =  XMMatrixRotationX(XMConvertToRadians(30.f)) * XMMatrixRotationY(XMConvertToRadians(-90.f))  * XMMatrixTranslation(-1.65f, 0.f, 0.f);
+	XMMATRIX transform =  XMMatrixRotationX(XMConvertToRadians(150.f)) * XMMatrixRotationY(XMConvertToRadians(90.f)) * XMMatrixTranslation(-1.65f, 0.f, 0.f);
 	XMStoreFloat4x4(&mirrorTransform, transform);
 	m_mirror = Mesh::DoubleRect(m_device, radius * 3.f);
 
@@ -54,30 +55,22 @@ Puma::Puma(HINSTANCE appInstance)
 	m_bsAdd = m_device.CreateBlendState(BlendDescription::AdditiveBlendDescription());
 	m_bsAlpha = m_device.CreateBlendState(BlendDescription::AlphaBlendDescription());
 	DepthStencilDescription dssDesc;
-	dssDesc.DepthEnable = true;
 	dssDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
 	m_dssNoWrite = m_device.CreateDepthStencilState(dssDesc);
 
-	dssDesc.StencilWriteMask = 0xff;
-	dssDesc.StencilReadMask = 0xff;
-	dssDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-	dssDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
-	dssDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-	dssDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
-	dssDesc.DepthEnable = true;
-	dssDesc.StencilEnable = true;
-	dssDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	DepthStencilDescription writeDesc;
+	writeDesc.StencilEnable = true;
+	writeDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	writeDesc.BackFace.StencilFunc = D3D11_COMPARISON_NEVER;
+	writeDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+	writeDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
+	m_dssStencilWrite = m_device.CreateDepthStencilState(writeDesc);
 
-	m_dssStencilWrite = m_device.CreateDepthStencilState(dssDesc);
-
-	dssDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-	dssDesc.StencilEnable = true;
-	dssDesc.DepthEnable = true;
-	dssDesc.FrontFace.StencilFunc = D3D11_COMPARISON_EQUAL;
-	dssDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-	dssDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-	dssDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
-	m_dssStencilTest = m_device.CreateDepthStencilState(dssDesc);
+	DepthStencilDescription testDesc;
+	testDesc.StencilEnable = true;
+	testDesc.BackFace.StencilFunc = D3D11_COMPARISON_NEVER;
+	testDesc.FrontFace.StencilFunc = D3D11_COMPARISON_EQUAL;
+	m_dssStencilTest = m_device.CreateDepthStencilState(testDesc);
 
 	auto vsCode = m_device.LoadByteCode(L"phongVS.cso");
 	auto psCode = m_device.LoadByteCode(L"phongPS.cso");
@@ -172,7 +165,7 @@ void mini::gk2::Puma::CalculateAnimation(const double& dt)
 	XMVECTOR position = XMVectorSet(x, y, z, 1.0f);
 
 	XMVECTOR center = XMVectorSet(0.0f, 0.f, 0.f, 1.0f);
-	XMVECTOR normal = XMVectorSet(0.f, 0.f, -1.f, 1.0f);
+	XMVECTOR normal = MIRROR_NORMAL;
 
 	position = XMVector3Transform(position, XMLoadFloat4x4(&mirrorTransform));
 	normal = XMVector3TransformNormal(normal, XMLoadFloat4x4(&mirrorTransform));
@@ -362,21 +355,41 @@ void Puma::DrawScene()
 	DrawCylinder();
 	DrawModel();
 	DrawBox();
-	DrawMirror();
+	//DrawMirror();
 }
 
 void mini::gk2::Puma::DrawMirroredScene()
 {
+	m_device.context()->OMSetDepthStencilState(m_dssStencilWrite.get(), 1);
+	UpdateCameraCB();
+	DrawMirror();
+	m_device.context()->OMSetDepthStencilState(m_dssStencilTest.get(), 1);
+
+	XMMATRIX viewMtx = m_camera.getViewMatrix();
+	XMVECTOR mirrorPlane = XMPlaneFromPointNormal(XMVector3Transform({ 0.f, 0.f, 0.f, 1.f }, XMLoadFloat4x4(&mirrorTransform)), 
+		XMVector3TransformNormal(MIRROR_NORMAL, XMLoadFloat4x4(&mirrorTransform)));
+	XMMATRIX reflectMatrix = XMMatrixReflect(mirrorPlane);
+
+	UpdateCameraCB(reflectMatrix * viewMtx);
+
+	m_device.context()->RSSetState(m_rsCCW.get());
+
+	DrawCylinder();
+	DrawModel();
+	DrawBox();
+
+	m_device.context()->RSSetState(nullptr);
+	m_device.context()->OMSetDepthStencilState(nullptr, 0);
 }
 
 void Puma::Render()
 {
 	Base::Render();
+	ResetRenderTarget();
 	UpdateBuffer(m_cbProjMtx, m_projMtx);
 
 	DrawMirroredScene();
 
-	ResetRenderTarget();
 
 	DrawScene();
 }

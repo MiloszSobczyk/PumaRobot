@@ -21,6 +21,7 @@ namespace mini::gk2
 #pragma region CONSTANTS
 		static const DirectX::XMFLOAT4 LIGHT_POS;
 		static const unsigned int MODEL_NUM = 6;
+		static const DirectX::XMVECTOR MIRROR_NORMAL;
 #pragma endregion
 		dx_ptr<ID3D11Buffer> m_cbWorldMtx, //vertex shader constant buffer slot 0
 			m_cbProjMtx;	//vertex shader constant buffer slot 2 & geometry shader constant buffer slot 0
