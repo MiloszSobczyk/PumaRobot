@@ -75,7 +75,6 @@ XMFLOAT3 ParticleSystem::RandomVelocity()
 Particle ParticleSystem::RandomParticle()
 {
 	Particle p;
-	p.Vertex.PrevPos = m_emitterPos;
 	p.Vertex.Pos = m_emitterPos;
 	p.Vertex.Age = 0.f;
 	p.Vertex.Size = PARTICLE_SIZE;
@@ -87,7 +86,6 @@ Particle ParticleSystem::RandomParticle()
 
 void ParticleSystem::UpdateParticle(Particle& p, float dt)
 {
-	p.Vertex.PrevPos = p.Vertex.Pos;
 	p.Vertex.Pos.x += p.Velocities.Velocity.x * dt;
 	p.Vertex.Pos.y += p.Velocities.Velocity.y * dt;
 	p.Vertex.Pos.z += p.Velocities.Velocity.z * dt;
