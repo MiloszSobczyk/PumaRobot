@@ -16,7 +16,8 @@ Puma::Puma(HINSTANCE appInstance)
 	m_cbViewMtx(m_device.CreateConstantBuffer<XMFLOAT4X4, 2>()),
 	m_cbSurfaceColor(m_device.CreateConstantBuffer<XMFLOAT4>()),
 	m_cbLightPos(m_device.CreateConstantBuffer<XMFLOAT4, 2>()),
-	m_vbParticleSystem(m_device.CreateVertexBuffer<ParticleVertex>(ParticleSystem::MAX_PARTICLES))
+	m_vbParticleSystem(m_device.CreateVertexBuffer<ParticleVertex>(ParticleSystem::MAX_PARTICLES)),
+	m_particleTexture(m_device.CreateShaderResourceView(L"resources/textures/particle.png"))
 {
 	//Projection matrix
 	auto s = m_window.getClientSize();
@@ -186,6 +187,10 @@ void mini::gk2::Puma::UpdateAnimation(const double& dt)
 		CalculateAnimation(dt);
 }
 
+void mini::gk2::Puma::UpdateParticles(const double& dt)
+{
+}
+
 void Puma::UpdateCameraCB(XMMATRIX viewMtx)
 {
 	XMVECTOR det;
@@ -288,6 +293,10 @@ void mini::gk2::Puma::DrawModel()
 	{
 		DrawMesh(m_model[i], m_modelWorldMatrices[i]);
 	}
+}
+
+void mini::gk2::Puma::DrawParticles()
+{
 }
 
 bool mini::gk2::Puma::HandleCameraInput(double dt)

@@ -71,6 +71,7 @@ namespace mini::gk2
 		void CalculateAnimation(const double& dt);
 
 		void UpdateAnimation(const double& dt);
+		void UpdateParticles(const double& dt);
 		void UpdateCameraCB(DirectX::XMMATRIX viewMtx);
 		void UpdateCameraCB() { UpdateCameraCB(m_camera.getViewMatrix()); }
 
@@ -79,6 +80,7 @@ namespace mini::gk2
 		void DrawCylinder();
 		void DrawBox();
 		void DrawModel();
+		void DrawParticles();
 
 		void SetupWorldMatrices();
 
