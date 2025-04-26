@@ -344,12 +344,16 @@ std::vector<unsigned short> mini::Mesh::SphereIdx(unsigned int stacks, unsigned 
 std::vector<VertexPositionNormal> mini::Mesh::CylinderVerts(unsigned int stacks, unsigned int slices, float height, float radius)
 {
 	assert(stacks > 0 && slices > 1);
-	auto n = (stacks + 1) * slices;
-	std::vector<VertexPositionNormal> vertices(n);
+
+	auto sideVerts = (stacks + 1) * slices;
+	auto totalVerts = sideVerts + 2 * slices + 2;
+	std::vector<VertexPositionNormal> vertices(totalVerts);
+
 	auto y = height / 2;
 	auto dy = height / stacks;
 	auto dp = XM_2PI / slices;
 	auto k = 0U;
+
 	for (auto i = 0U; i <= stacks; ++i, y -= dy)
 	{
 		auto phi = 0.0f;
@@ -362,74 +366,85 @@ std::vector<VertexPositionNormal> mini::Mesh::CylinderVerts(unsigned int stacks,
 		}
 	}
 
-	// Top and bottom center vertices
-	VertexPositionNormal topCenter, bottomCenter;
-	topCenter.position = XMFLOAT3(0.0f, height / 2, 0.0f);
-	topCenter.normal = XMFLOAT3(0.0f, 1.0f, 0.0f);
-	bottomCenter.position = XMFLOAT3(0.0f, -height / 2, 0.0f);
-	bottomCenter.normal = XMFLOAT3(0.0f, -1.0f, 0.0f);
-	vertices.push_back(topCenter);
-	vertices.push_back(bottomCenter);
+	auto angle = 0.0f;
+	for (auto j = 0U; j < slices; ++j, angle += dp)
+	{
+		float sinp, cosp;
+		XMScalarSinCos(&sinp, &cosp, angle);
+		vertices[k].position = XMFLOAT3(radius * cosp, height / 2, radius * sinp);
+		vertices[k++].normal = XMFLOAT3(0, 1, 0);
+	}
+
+	angle = 0.0f;
+	for (auto j = 0U; j < slices; ++j, angle += dp)
+	{
+		float sinp, cosp;
+		XMScalarSinCos(&sinp, &cosp, angle);
+		vertices[k].position = XMFLOAT3(radius * cosp, -height / 2, radius * sinp);
+		vertices[k++].normal = XMFLOAT3(0, -1, 0);
+	}
+
+	vertices[k].position = XMFLOAT3(0.0f, height / 2, 0.0f);
+	vertices[k++].normal = XMFLOAT3(0.0f, 1.0f, 0.0f);
+
+	vertices[k].position = XMFLOAT3(0.0f, -height / 2, 0.0f);
+	vertices[k++].normal = XMFLOAT3(0.0f, -1.0f, 0.0f);
 
 	return vertices;
 }
 
-
 std::vector<unsigned short> mini::Mesh::CylinderIdx(unsigned int stacks, unsigned int slices)
 {
 	assert(stacks > 0 && slices > 1);
+	auto sideTriangles = 6 * stacks * slices;
+	auto capTriangles = 6 * slices;
 	std::vector<unsigned short> indices;
-	indices.reserve(6 * stacks * slices + 6 * slices); // sides + caps
+	indices.reserve(sideTriangles + capTriangles);
 
 	for (auto i = 0U; i < stacks; ++i)
 	{
-		auto j = 0U;
-		for (; j < slices - 1; ++j)
+		for (auto j = 0U; j < slices; ++j)
 		{
-			indices.push_back(i * slices + j);
-			indices.push_back(i * slices + j + 1);
-			indices.push_back((i + 1) * slices + j + 1);
-			indices.push_back(i * slices + j);
-			indices.push_back((i + 1) * slices + j + 1);
-			indices.push_back((i + 1) * slices + j);
+			auto next = (j + 1) % slices;
+			auto a = i * slices + j;
+			auto b = i * slices + next;
+			auto c = (i + 1) * slices + j;
+			auto d = (i + 1) * slices + next;
+
+			indices.push_back(a);
+			indices.push_back(b);
+			indices.push_back(d);
+
+			indices.push_back(a);
+			indices.push_back(d);
+			indices.push_back(c);
 		}
-		indices.push_back(i * slices + j);
-		indices.push_back(i * slices);
-		indices.push_back((i + 1) * slices);
-		indices.push_back(i * slices + j);
-		indices.push_back((i + 1) * slices);
-		indices.push_back((i + 1) * slices + j);
 	}
 
-	// Top and bottom center indices
-	auto topCenterIdx = (stacks + 1) * slices;
-	auto bottomCenterIdx = topCenterIdx + 1;
+	auto sideVerts = (stacks + 1) * slices;
+	auto topStart = sideVerts;
+	auto bottomStart = topStart + slices;
+	auto topCenter = bottomStart + slices;
+	auto bottomCenter = topCenter + 1;
 
-	// Top cap
-	for (auto j = 0U; j < slices - 1; ++j)
+	for (auto j = 0U; j < slices; ++j)
 	{
-		indices.push_back(topCenterIdx);
-		indices.push_back(j + 1);
-		indices.push_back(j);
+		auto next = (j + 1) % slices;
+		indices.push_back(topCenter);
+		indices.push_back(topStart + next);
+		indices.push_back(topStart + j);
 	}
-	indices.push_back(topCenterIdx);
-	indices.push_back(0);
-	indices.push_back(slices - 1);
 
-	// Bottom cap
-	for (auto j = 0U; j < slices - 1; ++j)
+	for (auto j = 0U; j < slices; ++j)
 	{
-		indices.push_back(bottomCenterIdx);
-		indices.push_back((stacks)*slices + j);
-		indices.push_back((stacks)*slices + j + 1);
+		auto next = (j + 1) % slices;
+		indices.push_back(bottomCenter);
+		indices.push_back(bottomStart + j);
+		indices.push_back(bottomStart + next);
 	}
-	indices.push_back(bottomCenterIdx);
-	indices.push_back((stacks)*slices + slices - 1);
-	indices.push_back((stacks)*slices);
 
 	return indices;
 }
-
 
 std::vector<VertexPositionNormal> mini::Mesh::DiskVerts(unsigned int slices, float radius)
 {
