@@ -26,7 +26,7 @@ Puma::Puma(HINSTANCE appInstance)
 	UpdateBuffer(m_cbProjMtx, m_projMtx);
 	UpdateCameraCB();
 
-	XMMATRIX transform =  XMMatrixRotationX(XMConvertToRadians(150.f)) * XMMatrixRotationY(XMConvertToRadians(90.f)) * XMMatrixTranslation(-1.65f, 0.f, 0.f);
+	XMMATRIX transform =  XMMatrixRotationX(XMConvertToRadians(135.f)) * XMMatrixRotationY(XMConvertToRadians(90.f)) * XMMatrixTranslation(-1.65f, 0.f, 0.f);
 	XMStoreFloat4x4(&mirrorTransform, transform);
 	m_mirror = Mesh::DoubleRect(m_device, radius * 3.f);
 
@@ -122,7 +122,7 @@ void mini::gk2::Puma::inverse_kinematics(DirectX::XMVECTOR pos, DirectX::XMVECTO
 	XMVECTOR pos2 = XMVectorSet(e, y1 - dy, 0.0f, 0.0f);
 	float px = XMVectorGetX(pos2);
 	float py = XMVectorGetY(pos2);
-
+	
 	// Compute angle a3 (elbow)
 	float len_sq = px * px + py * py;
 	float cos_a3 = (len_sq - l1 * l1 - l2 * l2) / (2.0f * l1 * l2);
@@ -152,7 +152,6 @@ void mini::gk2::Puma::CalculateAnimation(const double& dt)
 {
 	const static float angleSpeed = 30.f;
 	static float angle = 0.f;
-
 	angle += static_cast<float>(dt) * angleSpeed;
 	if (angle > 360.f)
 		angle -= 360.f;
@@ -248,7 +247,7 @@ void mini::gk2::Puma::SetTextures(std::initializer_list<ID3D11ShaderResourceView
 
 void mini::gk2::Puma::DrawMirror()
 {
-	SetSurfaceColor({ 0.f, 0.75f, 0.f, 1.f });
+	SetSurfaceColor({ 0.1f, 0.1f, 0.1f, 0.5f });
 	DrawMesh(m_mirror, mirrorTransform);
 }
 
@@ -270,7 +269,7 @@ void mini::gk2::Puma::DrawBox()
 {
 	XMFLOAT4X4 mtx;
 	XMStoreFloat4x4(&mtx, XMMatrixTranslation(0.f, 1.5f, 0.f));
-	SetSurfaceColor({ 214.f / 255.f, 212.f / 255.f, 67.f / 255.f, 1.f });
+	SetSurfaceColor({ 0.6f, 0.1f, 0.6f, 1.f });
 	DrawMesh(m_box, mtx);
 }
 
@@ -349,13 +348,14 @@ void mini::gk2::Puma::HandlePumaMovement(double dt)
 void Puma::DrawScene()
 {
 	SetShaders(m_phongVS, m_phongPS);
+	DrawMirroredScene();
 
 	UpdateCameraCB();
 
 	DrawCylinder();
 	DrawModel();
 	DrawBox();
-	//DrawMirror();
+	DrawMirror();
 }
 
 void mini::gk2::Puma::DrawMirroredScene()
@@ -363,33 +363,47 @@ void mini::gk2::Puma::DrawMirroredScene()
 	m_device.context()->OMSetDepthStencilState(m_dssStencilWrite.get(), 1);
 	UpdateCameraCB();
 	DrawMirror();
+
 	m_device.context()->OMSetDepthStencilState(m_dssStencilTest.get(), 1);
 
-	XMMATRIX viewMtx = m_camera.getViewMatrix();
-	XMVECTOR mirrorPlane = XMPlaneFromPointNormal(XMVector3Transform({ 0.f, 0.f, 0.f, 1.f }, XMLoadFloat4x4(&mirrorTransform)), 
-		XMVector3TransformNormal(MIRROR_NORMAL, XMLoadFloat4x4(&mirrorTransform)));
-	XMMATRIX reflectMatrix = XMMatrixReflect(mirrorPlane);
-
-	UpdateCameraCB(reflectMatrix * viewMtx);
+	XMMATRIX mirror = XMMatrixScaling(1.f, 1.f, -1.f);
+	XMMATRIX model = XMLoadFloat4x4(&mirrorTransform);
+	XMMATRIX inv = XMMatrixInverse(nullptr, model);
+	XMMATRIX mirrorRef = inv * mirror * model;
 
 	m_device.context()->RSSetState(m_rsCCW.get());
+
+	XMMATRIX viewMtx = m_camera.getViewMatrix();
+	UpdateCameraCB(mirrorRef * viewMtx);
+
+	XMVECTOR lightPosVec = XMLoadFloat4(&LIGHT_POS);
+	lightPosVec = XMVector3Transform(lightPosVec, mirrorRef);
+	XMFLOAT4 mirroredLight;
+	XMStoreFloat4(&mirroredLight, lightPosVec);
+	UpdateBuffer(m_cbLightPos, mirroredLight);
 
 	DrawCylinder();
 	DrawModel();
 	DrawBox();
 
+	UpdateBuffer(m_cbLightPos, LIGHT_POS);
+
+	UpdateCameraCB();
 	m_device.context()->RSSetState(nullptr);
 	m_device.context()->OMSetDepthStencilState(nullptr, 0);
+
+	m_device.context()->OMSetBlendState(m_bsAlpha.get(), nullptr, 0xFFFFFFFF);
+	DrawMirror();
+	m_device.context()->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFF);
 }
+
 
 void Puma::Render()
 {
 	Base::Render();
+
 	ResetRenderTarget();
 	UpdateBuffer(m_cbProjMtx, m_projMtx);
-
-	DrawMirroredScene();
-
 
 	DrawScene();
 }
