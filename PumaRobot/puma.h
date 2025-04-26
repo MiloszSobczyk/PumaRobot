@@ -31,6 +31,11 @@ namespace mini::gk2
 		dx_ptr<ID3D11Buffer> m_vbParticleSystem;
 		dx_ptr<ID3D11ShaderResourceView> m_particleTexture;
 
+		KeyboardState actualKeyboardState;
+		KeyboardState previouseKebyoardState;
+
+		bool inAnimation = false;
+
 		float radius = 0.5f;
 		DirectX::XMFLOAT4X4 mirrorTransform;
 		Mesh m_mirror;
@@ -65,6 +70,7 @@ namespace mini::gk2
 		void inverse_kinematics(DirectX::XMVECTOR pos, DirectX::XMVECTOR normal);
 		void CalculateAnimation(const double& dt);
 
+		void UpdateAnimation(const double& dt);
 		void UpdateCameraCB(DirectX::XMMATRIX viewMtx);
 		void UpdateCameraCB() { UpdateCameraCB(m_camera.getViewMatrix()); }
 
@@ -83,6 +89,7 @@ namespace mini::gk2
 		void SetTextures(std::initializer_list<ID3D11ShaderResourceView*> resList) { SetTextures(std::move(resList), m_samplerWrap); }
 
 		bool HandleCameraInput(double dt) override;
+		void HandlePumaMovement(double dt);
 
 		void DrawScene();
 	};

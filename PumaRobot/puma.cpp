@@ -180,6 +180,12 @@ void mini::gk2::Puma::CalculateAnimation(const double& dt)
 	inverse_kinematics(position, normal);
 }
 
+void mini::gk2::Puma::UpdateAnimation(const double& dt)
+{
+	if (inAnimation)
+		CalculateAnimation(dt);
+}
+
 void Puma::UpdateCameraCB(XMMATRIX viewMtx)
 {
 	XMVECTOR det;
@@ -191,12 +197,19 @@ void Puma::UpdateCameraCB(XMMATRIX viewMtx)
 }
 
 void Puma::Update(const Clock& c)
-{
+{	
 	double dt = c.getFrameTime();
-	HandleCameraInput(dt);
+	
+	if (m_keyboard.GetState(actualKeyboardState))
+	{
+		HandleCameraInput(dt);
+		HandlePumaMovement(dt);
+	}
 
-	CalculateAnimation(dt);
+	UpdateAnimation(dt);
 	SetupWorldMatrices();
+
+	previouseKebyoardState = actualKeyboardState;
 }
 
 void mini::gk2::Puma::SetupWorldMatrices()
@@ -280,12 +293,8 @@ void mini::gk2::Puma::DrawModel()
 bool mini::gk2::Puma::HandleCameraInput(double dt)
 {
 	MouseState mstate;
-	KeyboardState kbState;
 	bool moved = false;
 	if (!m_mouse.GetState(mstate))
-		return false;
-
-	if (!m_keyboard.GetState(kbState))
 		return false;
 
 	auto d = mstate.getMousePositionChange();
@@ -303,22 +312,22 @@ bool mini::gk2::Puma::HandleCameraInput(double dt)
 	XMVECTOR moveVec = XMVectorZero();
 	float moveSpeed = MOVE_SPEED * dt; // Units per second
 
-	if (kbState.isKeyDown(DIK_W))
+	if (actualKeyboardState.isKeyDown(DIK_W))
 		moveVec += m_camera.getForwardDir(); // world forward (+Z)
 
-	if (kbState.isKeyDown(DIK_S))
+	if (actualKeyboardState.isKeyDown(DIK_S))
 		moveVec -= m_camera.getForwardDir(); // world backward (-Z)
 
-	if (kbState.isKeyDown(DIK_A))
+	if (actualKeyboardState.isKeyDown(DIK_A))
 		moveVec -= m_camera.getRightDir(); // world left (-X)
 
-	if (kbState.isKeyDown(DIK_D))
+	if (actualKeyboardState.isKeyDown(DIK_D))
 		moveVec += m_camera.getRightDir();  // world right (+X)
 
-	if (kbState.isKeyDown(DIK_Q))
+	if (actualKeyboardState.isKeyDown(DIK_Q))
 		moveVec += XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f);  // world up (+Y)
 
-	if (kbState.isKeyDown(DIK_E))
+	if (actualKeyboardState.isKeyDown(DIK_E))
 		moveVec += XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f); // world down (-Y)
 
 	if (!XMVector3Equal(moveVec, XMVectorZero()))
@@ -330,6 +339,18 @@ bool mini::gk2::Puma::HandleCameraInput(double dt)
 	}
 
 	return moved;
+}
+
+void mini::gk2::Puma::HandlePumaMovement(double dt)
+{
+	if (actualKeyboardState.keyPressed(previouseKebyoardState, DIK_C))
+	{
+		inAnimation = !inAnimation;
+	}
+
+	if (inAnimation) return;
+
+	//TODO: Handle Puma movement
 }
 
 void Puma::DrawScene()
