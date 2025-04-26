@@ -365,12 +365,18 @@ void Puma::DrawScene()
 	DrawMirror();
 }
 
+void mini::gk2::Puma::DrawMirroredScene()
+{
+}
+
 void Puma::Render()
 {
 	Base::Render();
+	UpdateBuffer(m_cbProjMtx, m_projMtx);
+
+	DrawMirroredScene();
 
 	ResetRenderTarget();
-	UpdateBuffer(m_cbProjMtx, m_projMtx);
 
 	DrawScene();
 }

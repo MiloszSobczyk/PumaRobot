@@ -92,5 +92,6 @@ namespace mini::gk2
 		void HandlePumaMovement(double dt);
 
 		void DrawScene();
+		void DrawMirroredScene();
 	};
 }
