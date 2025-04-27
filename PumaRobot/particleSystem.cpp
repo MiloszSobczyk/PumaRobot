@@ -82,7 +82,7 @@ Particle ParticleSystem::RandomParticle()
 
 void ParticleSystem::UpdateParticle(Particle& p, float dt)
 {
-	XMVECTOR gravity = { 0.f, 3.81f * dt, 0.f, 0.f };
+	XMVECTOR gravity = { 0.f, 3.f * dt, 0.f, 0.f };
 
 	// DONE : 1.28 Update particle properties
 	auto pos = XMLoadFloat3(&p.Vertex.Pos);
