@@ -178,7 +178,7 @@ DirectX::XMVECTOR mini::gk2::Puma::CalculateAnimation(const double& dt)
 	normal = XMVector3TransformNormal(normal, XMLoadFloat4x4(&mirrorTransform));
 
 	inverse_kinematics(position, normal);
-
+	position = position - XMVECTOR{ 0.f, 1.5f, 0.f, 0.f };
 	return position;
 }
 
