@@ -155,7 +155,7 @@ void mini::gk2::Puma::inverse_kinematics(DirectX::XMVECTOR pos, DirectX::XMVECTO
 	angles[4] = atan2f(nz, ny);
 }
 
-void mini::gk2::Puma::CalculateAnimation(const double& dt)
+DirectX::XMVECTOR mini::gk2::Puma::CalculateAnimation(const double& dt)
 {
 	const static float angleSpeed = 30.f;
 	static float angle = 0.f;
@@ -178,12 +178,17 @@ void mini::gk2::Puma::CalculateAnimation(const double& dt)
 	normal = XMVector3TransformNormal(normal, XMLoadFloat4x4(&mirrorTransform));
 
 	inverse_kinematics(position, normal);
+
+	return position;
 }
 
 void mini::gk2::Puma::UpdateAnimation(const double& dt)
 {
 	if (inAnimation)
-		CalculateAnimation(dt);
+	{
+		auto pos = CalculateAnimation(dt);
+		UpdateParticles(dt, pos);
+	}
 }
 
 void Puma::UpdateCameraCB(XMMATRIX viewMtx)
@@ -194,6 +199,13 @@ void Puma::UpdateCameraCB(XMMATRIX viewMtx)
 	DirectX::XMStoreFloat4x4(view, viewMtx);
 	DirectX::XMStoreFloat4x4(view + 1, invViewMtx);
 	UpdateBuffer(m_cbViewMtx, view);
+}
+
+void mini::gk2::Puma::UpdateParticles(const double& dt, DirectX::XMVECTOR emitterPos)
+{
+	XMFLOAT3 em;
+	XMStoreFloat3(&em, emitterPos);
+	UpdateBuffer(m_vbParticleSystem, m_particleSystem.Update(dt, m_camera.getCameraPosition(), em));
 }
 
 void Puma::Update(const Clock& c)
@@ -290,6 +302,19 @@ void mini::gk2::Puma::DrawModel()
 	}
 }
 
+void mini::gk2::Puma::DrawParticles()
+{
+	if (m_particleSystem.particlesCount() == 0)
+		return;
+
+	m_device.context()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP);
+	unsigned int stride = sizeof(ParticleVertex);
+	unsigned int offset = 0;
+	auto vb = m_vbParticleSystem.get();
+	m_device.context()->IASetVertexBuffers(0, 1, &vb, &stride, &offset);
+	m_device.context()->Draw(m_particleSystem.particlesCount(), 0);
+}
+
 bool mini::gk2::Puma::HandleCameraInput(double dt)
 {
 	MouseState mstate;
@@ -359,10 +384,11 @@ void Puma::DrawScene()
 
 	UpdateCameraCB();
 
+	DrawMirror();
 	DrawCylinder();
 	DrawModel();
 	DrawBox();
-	DrawMirror();
+	DrawParticles();
 }
 
 void mini::gk2::Puma::DrawMirroredScene()
