@@ -290,6 +290,23 @@ void mini::gk2::Puma::DrawModel()
 	}
 }
 
+void mini::gk2::Puma::DrawParticles()
+{
+	if (m_particleSystem.particlesCount() == 0)
+		return;
+
+	XMFLOAT4X4 identityMtx;
+	XMStoreFloat4x4(&identityMtx, XMMatrixIdentity());
+	SetWorldMtx(identityMtx);
+
+	m_device.context()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP);
+	unsigned int stride = sizeof(ParticleVertex);
+	unsigned int offset = 0;
+	auto vb = m_vbParticleSystem.get();
+	m_device.context()->IASetVertexBuffers(0, 1, &vb, &stride, &offset);
+	m_device.context()->Draw(m_particleSystem.particlesCount(), 0);
+}
+
 bool mini::gk2::Puma::HandleCameraInput(double dt)
 {
 	MouseState mstate;
