@@ -17,9 +17,9 @@ Puma::Puma(HINSTANCE appInstance)
 	m_cbViewMtx(m_device.CreateConstantBuffer<XMFLOAT4X4, 2>()),
 	m_cbSurfaceColor(m_device.CreateConstantBuffer<XMFLOAT4>()),
 	m_cbLightPos(m_device.CreateConstantBuffer<XMFLOAT4, 2>()),
+	m_cbTexTransform(m_device.CreateConstantBuffer<XMFLOAT4X4>()),
 	m_vbParticleSystem(m_device.CreateVertexBuffer<ParticleVertex>(ParticleSystem::MAX_PARTICLES)),
 	m_mirrorTexture(m_device.CreateShaderResourceView(L"resources/textures/mirror.png"))
-
 {
 	//Projection matrix
 	auto s = m_window.getClientSize();
@@ -80,6 +80,15 @@ Puma::Puma(HINSTANCE appInstance)
 	m_phongPS = m_device.CreatePixelShader(psCode);
 	m_inputlayout = m_device.CreateInputLayout(VertexPositionNormal::Layout, vsCode);
 
+	SamplerDescription sd;
+	sd.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	sd.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	sd.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	sd.Filter = D3D11_FILTER_ANISOTROPIC;
+	sd.MaxAnisotropy = 16;
+
+	m_samplerWrap = m_device.CreateSamplerState(sd);
+
 	vsCode = m_device.LoadByteCode(L"particleVS.cso");
 	psCode = m_device.LoadByteCode(L"particlePS.cso");
 	auto gsCode = m_device.LoadByteCode(L"particleGS.cso");
@@ -87,6 +96,11 @@ Puma::Puma(HINSTANCE appInstance)
 	m_particlePS = m_device.CreatePixelShader(psCode);
 	m_particleGS = m_device.CreateGeometryShader(gsCode);
 	m_particleLayout = m_device.CreateInputLayout<ParticleVertex>(vsCode);
+
+	vsCode = m_device.LoadByteCode(L"texturedVS.cso");
+	psCode = m_device.LoadByteCode(L"texturedPS.cso");
+	m_textureVS = m_device.CreateVertexShader(vsCode);
+	m_texturePS = m_device.CreatePixelShader(psCode);
 
 	m_device.context()->IASetInputLayout(m_inputlayout.get());
 	m_device.context()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -249,7 +263,19 @@ void mini::gk2::Puma::SetTextures(std::initializer_list<ID3D11ShaderResourceView
 
 void mini::gk2::Puma::DrawMirror()
 {
-	SetSurfaceColor({ 0.1f, 0.1f, 0.1f, 0.5f });
+	float inv = 1.0f / (3.0f * radius);
+	XMMATRIX texM = XMMatrixScaling(inv, inv, 1.f)
+		* XMMatrixTranslation(0.5f, 0.5f, 0.f);
+	XMStoreFloat4x4(&m_texTransformMtx, texM);
+
+	UpdateBuffer(m_cbTexTransform, m_texTransformMtx);
+	ID3D11Buffer* cb3 = m_cbTexTransform.get();
+	m_device.context()->VSSetConstantBuffers(3, 1, &cb3);
+
+	SetShaders(m_textureVS, m_texturePS);
+	m_device.context()->IASetInputLayout(m_inputlayout.get());
+	SetTextures({ m_mirrorTexture.get() }, m_samplerWrap);
+
 	DrawMesh(m_mirror, mirrorTransform);
 }
 
@@ -282,6 +308,69 @@ void mini::gk2::Puma::DrawModel()
 	{
 		DrawMesh(m_model[i], m_modelWorldMatrices[i]);
 	}
+}
+
+void Puma::DrawScene()
+{
+	SetShaders(m_phongVS, m_phongPS);
+	//DrawMirroredScene();
+
+	UpdateCameraCB();
+
+	DrawCylinder();
+	DrawModel();
+	DrawBox();
+
+	DrawMirror();
+}
+
+void mini::gk2::Puma::DrawMirroredScene()
+{
+	m_device.context()->OMSetDepthStencilState(m_dssStencilWrite.get(), 1);
+	UpdateCameraCB();
+	DrawMirror();
+
+	m_device.context()->OMSetDepthStencilState(m_dssStencilTest.get(), 1);
+
+	XMMATRIX mirror = XMMatrixScaling(1.f, 1.f, -1.f);
+	XMMATRIX model = XMLoadFloat4x4(&mirrorTransform);
+	XMMATRIX inv = XMMatrixInverse(nullptr, model);
+	XMMATRIX mirrorRef = inv * mirror * model;
+
+	m_device.context()->RSSetState(m_rsCCW.get());
+
+	XMMATRIX viewMtx = m_camera.getViewMatrix();
+	UpdateCameraCB(mirrorRef * viewMtx);
+
+	XMVECTOR lightPosVec = XMLoadFloat4(&LIGHT_POS);
+	lightPosVec = XMVector3Transform(lightPosVec, mirrorRef);
+	XMFLOAT4 mirroredLight;
+	XMStoreFloat4(&mirroredLight, lightPosVec);
+	UpdateBuffer(m_cbLightPos, mirroredLight);
+
+	DrawCylinder();
+	DrawModel();
+	DrawBox();
+
+	UpdateBuffer(m_cbLightPos, LIGHT_POS);
+
+	UpdateCameraCB();
+	m_device.context()->RSSetState(nullptr);
+	m_device.context()->OMSetDepthStencilState(nullptr, 0);
+
+	m_device.context()->OMSetBlendState(m_bsAlpha.get(), nullptr, 0xFFFFFFFF);
+	DrawMirror();
+	m_device.context()->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFF);
+}
+
+void Puma::Render()
+{
+	Base::Render();
+
+	ResetRenderTarget();
+	UpdateBuffer(m_cbProjMtx, m_projMtx);
+
+	DrawScene();
 }
 
 bool mini::gk2::Puma::HandleCameraInput(double dt)
@@ -345,67 +434,4 @@ void mini::gk2::Puma::HandlePumaMovement(double dt)
 	if (inAnimation) return;
 
 	//TODO: Handle Puma movement
-}
-
-void Puma::DrawScene()
-{
-	SetShaders(m_phongVS, m_phongPS);
-	DrawMirroredScene();
-
-	UpdateCameraCB();
-
-	DrawCylinder();
-	DrawModel();
-	DrawBox();
-	DrawMirror();
-}
-
-void mini::gk2::Puma::DrawMirroredScene()
-{
-	m_device.context()->OMSetDepthStencilState(m_dssStencilWrite.get(), 1);
-	UpdateCameraCB();
-	DrawMirror();
-
-	m_device.context()->OMSetDepthStencilState(m_dssStencilTest.get(), 1);
-
-	XMMATRIX mirror = XMMatrixScaling(1.f, 1.f, -1.f);
-	XMMATRIX model = XMLoadFloat4x4(&mirrorTransform);
-	XMMATRIX inv = XMMatrixInverse(nullptr, model);
-	XMMATRIX mirrorRef = inv * mirror * model;
-
-	m_device.context()->RSSetState(m_rsCCW.get());
-
-	XMMATRIX viewMtx = m_camera.getViewMatrix();
-	UpdateCameraCB(mirrorRef * viewMtx);
-
-	XMVECTOR lightPosVec = XMLoadFloat4(&LIGHT_POS);
-	lightPosVec = XMVector3Transform(lightPosVec, mirrorRef);
-	XMFLOAT4 mirroredLight;
-	XMStoreFloat4(&mirroredLight, lightPosVec);
-	UpdateBuffer(m_cbLightPos, mirroredLight);
-
-	DrawCylinder();
-	DrawModel();
-	DrawBox();
-
-	UpdateBuffer(m_cbLightPos, LIGHT_POS);
-
-	UpdateCameraCB();
-	m_device.context()->RSSetState(nullptr);
-	m_device.context()->OMSetDepthStencilState(nullptr, 0);
-
-	m_device.context()->OMSetBlendState(m_bsAlpha.get(), nullptr, 0xFFFFFFFF);
-	DrawMirror();
-	m_device.context()->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFF);
-}
-
-
-void Puma::Render()
-{
-	Base::Render();
-
-	ResetRenderTarget();
-	UpdateBuffer(m_cbProjMtx, m_projMtx);
-
-	DrawScene();
 }

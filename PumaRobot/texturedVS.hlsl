@@ -1,46 +1,43 @@
-cbuffer cbWorld : register(b0) //Vertex Shader constant buffer slot 0
+cbuffer cbWorld : register(b0)
 {
-	matrix worldMatrix;
+    matrix worldMatrix;
 };
-
-cbuffer cbView : register(b1) //Vertex Shader constant buffer slot 1
+cbuffer cbView : register(b1)
 {
-	matrix viewMatrix;
+    matrix viewMatrix;
 };
-
-cbuffer cbProj : register(b2) //Vertex Shader constant buffer slot 2
+cbuffer cbProj : register(b2)
 {
-	matrix projMatrix;
+    matrix projMatrix;
 };
-
-cbuffer cbTextureTransform : register(b3)
+cbuffer cbTexTransform : register(b3)
 {
-	matrix texMatrix;
+    matrix texMatrix;
 };
 
 struct VSInput
 {
-	float3 pos : POSITION;
-	float3 norm : NORMAL0;
+    float3 pos : POSITION;
 };
 
 struct PSInput
 {
-	float4 pos : SV_POSITION;
-	float2 tex: TEXCOORD0;
+    float4 pos : SV_POSITION;
+    float2 uv : TEXCOORD0;
 };
 
 PSInput main(VSInput i)
 {
-	PSInput o = (PSInput)0;
-	o.pos = float4(i.pos, 1.0f);
+    PSInput o;
 
-	// DONE : 0.07 Calculate texture coordinates by multiplying local position by texture matrix
-	o.tex = mul(texMatrix, float4(i.pos, 1.0f));
+    o.pos = float4(i.pos, 1.0f);
 
-	o.pos = mul(worldMatrix, o.pos);
-	o.pos = mul(viewMatrix, o.pos);
-	o.pos = mul(projMatrix, o.pos);
+    o.pos = mul(worldMatrix, o.pos);
+    o.pos = mul(viewMatrix, o.pos);
+    o.pos = mul(projMatrix, o.pos);
 
-	return o;
+    float4 uv4 = mul(texMatrix, float4(i.pos, 1.0f));
+    o.uv = uv4.xy;
+
+    return o;
 }

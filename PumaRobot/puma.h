@@ -28,6 +28,8 @@ namespace mini::gk2
 		dx_ptr<ID3D11Buffer> m_cbViewMtx; //vertex shader constant buffer slot 1
 		dx_ptr<ID3D11Buffer> m_cbSurfaceColor;	//pixel shader constant buffer slot 0
 		dx_ptr<ID3D11Buffer> m_cbLightPos; //pixel shader constant buffer slot 1
+		dx_ptr<ID3D11Buffer> m_cbTexTransform;
+		DirectX::XMFLOAT4X4 m_texTransformMtx;
 
 		dx_ptr<ID3D11Buffer> m_vbParticleSystem;
 		dx_ptr<ID3D11ShaderResourceView> m_particleTexture;
@@ -65,9 +67,9 @@ namespace mini::gk2
 
 		dx_ptr<ID3D11InputLayout> m_inputlayout, m_particleLayout;
 
-		dx_ptr<ID3D11VertexShader> m_phongVS, m_particleVS;
+		dx_ptr<ID3D11VertexShader> m_phongVS, m_particleVS, m_textureVS;
 		dx_ptr<ID3D11GeometryShader> m_particleGS;
-		dx_ptr<ID3D11PixelShader> m_phongPS, m_particlePS;
+		dx_ptr<ID3D11PixelShader> m_phongPS, m_particlePS, m_texturePS;
 
 		void inverse_kinematics(DirectX::XMVECTOR pos, DirectX::XMVECTOR normal);
 		void CalculateAnimation(const double& dt);
