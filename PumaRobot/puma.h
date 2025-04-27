@@ -31,6 +31,7 @@ namespace mini::gk2
 
 		dx_ptr<ID3D11Buffer> m_vbParticleSystem;
 		dx_ptr<ID3D11ShaderResourceView> m_particleTexture;
+		dx_ptr<ID3D11ShaderResourceView> m_mirrorTexture;
 
 		KeyboardState actualKeyboardState;
 		KeyboardState previouseKebyoardState;

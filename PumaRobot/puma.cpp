@@ -17,7 +17,9 @@ Puma::Puma(HINSTANCE appInstance)
 	m_cbViewMtx(m_device.CreateConstantBuffer<XMFLOAT4X4, 2>()),
 	m_cbSurfaceColor(m_device.CreateConstantBuffer<XMFLOAT4>()),
 	m_cbLightPos(m_device.CreateConstantBuffer<XMFLOAT4, 2>()),
-	m_vbParticleSystem(m_device.CreateVertexBuffer<ParticleVertex>(ParticleSystem::MAX_PARTICLES))
+	m_vbParticleSystem(m_device.CreateVertexBuffer<ParticleVertex>(ParticleSystem::MAX_PARTICLES)),
+	m_mirrorTexture(m_device.CreateShaderResourceView(L"resources/textures/mirror.png"))
+
 {
 	//Projection matrix
 	auto s = m_window.getClientSize();
