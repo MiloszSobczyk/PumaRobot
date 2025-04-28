@@ -332,6 +332,7 @@ void mini::gk2::Puma::DrawParticles()
 
 	m_device.context()->GSSetShader(nullptr, nullptr, 0);
 	m_device.context()->IASetInputLayout(m_inputlayout.get());
+	m_device.context()->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFF);
 	m_device.context()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
