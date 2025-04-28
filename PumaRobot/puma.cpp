@@ -19,7 +19,8 @@ Puma::Puma(HINSTANCE appInstance)
 	m_cbLightPos(m_device.CreateConstantBuffer<XMFLOAT4, 2>()),
 	m_cbTexTransform(m_device.CreateConstantBuffer<XMFLOAT4X4>()),
 	m_vbParticleSystem(m_device.CreateVertexBuffer<ParticleVertex>(ParticleSystem::MAX_PARTICLES)),
-	m_mirrorTexture(m_device.CreateShaderResourceView(L"resources/textures/mirror.png"))
+	m_mirrorTexture(m_device.CreateShaderResourceView(L"resources/textures/mirror.png")),
+	m_particleTexture(m_device.CreateShaderResourceView(L"resources/textures/rain.png"))
 {
 	//Projection matrix
 	auto s = m_window.getClientSize();
@@ -105,6 +106,16 @@ Puma::Puma(HINSTANCE appInstance)
 	m_device.context()->IASetInputLayout(m_inputlayout.get());
 	m_device.context()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
+	SamplerDescription sd1;
+	// TODO : 0.01 Set to proper addressing (wrap) and filtering (16x anisotropic) modes of the sampler
+	sd1.Filter = D3D11_FILTER_ANISOTROPIC;
+	sd1.MaxAnisotropy = 16;
+	sd1.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+	sd1.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sd1.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sd1.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	m_samplerWrap = m_device.CreateSamplerState(sd1);
+
 	//We have to make sure all shaders use constant buffers in the same slots!
 	//Not all slots will be use by each shader
 	ID3D11Buffer* vsb[] = { m_cbWorldMtx.get(),  m_cbViewMtx.get(), m_cbProjMtx.get() };
@@ -164,7 +175,7 @@ void mini::gk2::Puma::inverse_kinematics(DirectX::XMVECTOR pos, DirectX::XMVECTO
 	angles[4] = atan2f(nz, ny);
 }
 
-void mini::gk2::Puma::CalculateAnimation(const double& dt)
+DirectX::XMVECTOR mini::gk2::Puma::CalculateAnimation(const double& dt)
 {
 	const static float angleSpeed = 30.f;
 	static float angle = 0.f;
@@ -186,12 +197,17 @@ void mini::gk2::Puma::CalculateAnimation(const double& dt)
 	normal = XMVector3TransformNormal(normal, XMLoadFloat4x4(&mirrorTransform));
 
 	inverse_kinematics(position, normal);
+
+	return position;
 }
 
 void mini::gk2::Puma::UpdateAnimation(const double& dt)
 {
 	if (inAnimation)
-		CalculateAnimation(dt);
+	{
+		auto pos = CalculateAnimation(dt);
+		UpdateParticles(dt, pos);
+	}
 }
 
 void Puma::UpdateCameraCB(XMMATRIX viewMtx)
@@ -202,6 +218,13 @@ void Puma::UpdateCameraCB(XMMATRIX viewMtx)
 	DirectX::XMStoreFloat4x4(view, viewMtx);
 	DirectX::XMStoreFloat4x4(view + 1, invViewMtx);
 	UpdateBuffer(m_cbViewMtx, view);
+}
+
+void mini::gk2::Puma::UpdateParticles(const double& dt, DirectX::XMVECTOR emitterPos)
+{
+	XMFLOAT3 em;
+	XMStoreFloat3(&em, emitterPos);
+	UpdateBuffer(m_vbParticleSystem, m_particleSystem.Update(dt, m_camera.getCameraPosition(), em));
 }
 
 void Puma::Update(const Clock& c)
@@ -297,13 +320,13 @@ void mini::gk2::Puma::DrawBox()
 {
 	XMFLOAT4X4 mtx;
 	XMStoreFloat4x4(&mtx, XMMatrixTranslation(0.f, 1.5f, 0.f));
-	SetSurfaceColor({ 0.6f, 0.1f, 0.6f, 1.f });
+	SetSurfaceColor({ 0.8f, 0.8f, 0.2f, 1.f });
 	DrawMesh(m_box, mtx);
 }
 
 void mini::gk2::Puma::DrawModel()
 {
-	SetSurfaceColor({ 214.f / 255.f, 212.f / 255.f, 67.f / 255.f, 1.f });
+	SetSurfaceColor({ 0.8f, 0.8f, 0.8f, 1.f });
 	for (int i = 0; i < MODEL_NUM; i++)
 	{
 		DrawMesh(m_model[i], m_modelWorldMatrices[i]);
@@ -319,6 +342,7 @@ void Puma::DrawScene()
 	DrawCylinder();
 	DrawModel();
 	DrawBox();
+	DrawParticles();
 
 	DrawMirror();
 }
@@ -352,6 +376,7 @@ void mini::gk2::Puma::DrawMirroredScene()
 	DrawCylinder();
 	DrawModel();
 	DrawBox();
+	DrawParticles();
 
 	UpdateBuffer(m_cbLightPos, LIGHT_POS);
 
@@ -364,6 +389,29 @@ void mini::gk2::Puma::DrawMirroredScene()
 	m_device.context()->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFF);
 
 	SetShaders(m_phongVS, m_phongPS);
+}
+
+void mini::gk2::Puma::DrawParticles()
+{
+	if (m_particleSystem.particlesCount() == 0)
+		return;
+
+	m_device.context()->IASetInputLayout(m_particleLayout.get());
+	SetShaders(m_particleVS, m_particlePS);
+	SetTextures({ m_particleTexture.get() }, m_samplerWrap);
+	m_device.context()->GSSetShader(m_particleGS.get(), nullptr, 0);
+	m_device.context()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	unsigned int stride = sizeof(ParticleVertex);
+	unsigned int offset = 0;
+	auto vb = m_vbParticleSystem.get();
+	m_device.context()->IASetVertexBuffers(0, 1, &vb, &stride, &offset);
+	m_device.context()->OMSetBlendState(m_bsAdd.get(), nullptr, 0xFFFFFFFF);
+	m_device.context()->Draw(m_particleSystem.particlesCount(), 0);
+
+	m_device.context()->GSSetShader(nullptr, nullptr, 0);
+	m_device.context()->IASetInputLayout(m_inputlayout.get());
+	m_device.context()->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFF);
+	m_device.context()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
 void Puma::Render()

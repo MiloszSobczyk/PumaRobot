@@ -13,29 +13,27 @@ using namespace std;
 const D3D11_INPUT_ELEMENT_DESC ParticleVertex::Layout[4] =
 {
 	{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	{ "TEXCOORD", 0, DXGI_FORMAT_R32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	{ "TEXCOORD", 1, DXGI_FORMAT_R32_FLOAT, 0, 16, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	{ "TEXCOORD", 2, DXGI_FORMAT_R32_FLOAT, 0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+	{ "POSITION",1, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	{ "TEXCOORD", 0, DXGI_FORMAT_R32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	{ "TEXCOORD", 1, DXGI_FORMAT_R32_FLOAT, 0, 28, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 };
 
-const XMFLOAT3 ParticleSystem::EMITTER_DIR = XMFLOAT3(0.0f, 1.0f, 0.0f);
-const float ParticleSystem::TIME_TO_LIVE = 4.0f;
-const float ParticleSystem::EMISSION_RATE = 10.0f;
-const float ParticleSystem::MAX_ANGLE = XM_PIDIV2 / 9.0f;
-const float ParticleSystem::MIN_VELOCITY = 0.2f;
-const float ParticleSystem::MAX_VELOCITY = 0.33f;
+const XMFLOAT3 ParticleSystem::EMITTER_DIR = XMFLOAT3(0.8f, 0.5f, 0.0f);
+const float ParticleSystem::TIME_TO_LIVE = 1.5f;
+const float ParticleSystem::EMISSION_RATE = 100.0f;
+const float ParticleSystem::MAX_ANGLE = XM_PIDIV2 / 2.0f;
+const float ParticleSystem::MIN_VELOCITY = 0.5f;
+const float ParticleSystem::MAX_VELOCITY = 3.f;
 const float ParticleSystem::PARTICLE_SIZE = 0.08f;
 const float ParticleSystem::PARTICLE_SCALE = 1.0f;
 const float ParticleSystem::MIN_ANGLE_VEL = -XM_PI;
 const float ParticleSystem::MAX_ANGLE_VEL = XM_PI;
 const int ParticleSystem::MAX_PARTICLES = 500;
+const float ParticleSystem::GRAVITY = 3.f;
 
-ParticleSystem::ParticleSystem(DirectX::XMFLOAT3 emmiterPosition)
-	: m_emitterPos(emmiterPosition), m_particlesToCreate(0.0f), m_random(random_device{}())
-{ }
-
-vector<ParticleVertex> ParticleSystem::Update(float dt, DirectX::XMFLOAT4 cameraPosition)
+vector<ParticleVertex> ParticleSystem::Update(float dt, DirectX::XMFLOAT4 cameraPosition, DirectX::XMFLOAT3 emitterPos)
 {
+	m_emitterPos = emitterPos;
 	size_t removeCount = 0;
 	for (auto& p : m_particles)
 	{
@@ -63,8 +61,8 @@ XMFLOAT3 ParticleSystem::RandomVelocity()
 	float angle = angleDist(m_random);
 	float magnitude = magnitudeDist(m_random);
 	XMFLOAT3 v{ cos(angle)*magnitude, 1.0f, sin(angle)*magnitude };
-
-	auto velocity = XMLoadFloat3(&v);
+	XMVECTOR dir = XMLoadFloat3(&EMITTER_DIR);
+	auto velocity = XMLoadFloat3(&v) + dir;
 	auto len = velDist(m_random);
 	velocity = len * XMVector3Normalize(velocity);
 	XMStoreFloat3(&v, velocity);
@@ -77,11 +75,10 @@ Particle ParticleSystem::RandomParticle()
 	Particle p;
 	// DONE : 1.27 Setup initial particle properties
 	p.Vertex.Pos = m_emitterPos;
+	p.Vertex.PreviousPos = m_emitterPos;
 	p.Vertex.Age = 0.0f;
-	p.Vertex.Angle = 0.0f;
-	p.Vertex.Size = PARTICLE_SIZE;
 	p.Velocities.Velocity = RandomVelocity();
-	p.Velocities.AngularVelocity = angularVelDist(m_random);
+	p.Vertex.Size = PARTICLE_SIZE;
 
 	return p;
 }
@@ -89,12 +86,12 @@ Particle ParticleSystem::RandomParticle()
 void ParticleSystem::UpdateParticle(Particle& p, float dt)
 {
 	// DONE : 1.28 Update particle properties
-	auto pos = XMLoadFloat3(&p.Vertex.Pos);
-	auto vel = XMLoadFloat3(&p.Velocities.Velocity);
-	XMStoreFloat3(&p.Vertex.Pos, XMVectorAdd(pos, vel * dt));
 	p.Vertex.Age += dt;
-	p.Vertex.Size += PARTICLE_SCALE * PARTICLE_SIZE * dt;
-	p.Vertex.Angle += p.Velocities.AngularVelocity * dt;
+	p.Velocities.Velocity.y -= GRAVITY * dt;
+	p.Vertex.PreviousPos = p.Vertex.Pos;
+	p.Vertex.Pos.x += p.Velocities.Velocity.x * dt;
+	p.Vertex.Pos.y += p.Velocities.Velocity.y * dt;
+	p.Vertex.Pos.z += p.Velocities.Velocity.z * dt;
 }
 
 vector<ParticleVertex> ParticleSystem::GetParticleVerts(DirectX::XMFLOAT4 cameraPosition)

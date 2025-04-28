@@ -11,20 +11,20 @@ namespace mini
 		struct ParticleVertex
 		{
 			DirectX::XMFLOAT3 Pos;
+			DirectX::XMFLOAT3 PreviousPos;
 			float Age;
-			float Angle;
 			float Size;
+
 			static const D3D11_INPUT_ELEMENT_DESC Layout[4];
 
-			ParticleVertex() : Pos(0.0f, 0.0f, 0.0f), Age(0.0f), Angle(0.0f), Size(0.0f) { }
+			ParticleVertex() : Pos(0.0f, 0.0f, 0.0f), Age(0.0f), PreviousPos(0.0f, 0.0f, 0.0f), Size(0.0f) { }
 		};
 
 		struct ParticleVelocities
 		{
 			DirectX::XMFLOAT3 Velocity;
-			float AngularVelocity;
 
-			ParticleVelocities() : Velocity(0.0f, 0.0f, 0.0f), AngularVelocity(0.0f) { }
+			ParticleVelocities() : Velocity(0.0f, 0.0f, 0.0f){ }
 		};
 
 		struct Particle
@@ -40,11 +40,9 @@ namespace mini
 
 			ParticleSystem(ParticleSystem&& other) = default;
 
-			ParticleSystem(DirectX::XMFLOAT3 emmiterPosition);
-
 			ParticleSystem& operator=(ParticleSystem&& other) = default;
 
-			std::vector<ParticleVertex> Update(float dt, DirectX::XMFLOAT4 cameraPosition);
+			std::vector<ParticleVertex> Update(float dt, DirectX::XMFLOAT4 cameraPosition, DirectX::XMFLOAT3 emitterPos);
 
 			size_t particlesCount() const { return m_particles.size(); }
 			static const int MAX_PARTICLES;		//maximal number of particles in the system
@@ -60,6 +58,7 @@ namespace mini
 			static const float PARTICLE_SCALE;	//size += size*scale*dtime
 			static const float MIN_ANGLE_VEL;	//minimal rotation speed
 			static const float MAX_ANGLE_VEL;	//maximal rotation speed
+			static const float GRAVITY;	//maximal rotation speed
 
 			DirectX::XMFLOAT3 m_emitterPos;
 			float m_particlesToCreate;

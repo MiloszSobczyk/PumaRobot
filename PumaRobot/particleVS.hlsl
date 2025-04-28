@@ -1,31 +1,39 @@
-cbuffer cbView : register(b1) //Vertex Shader constant buffer slot 1
+cbuffer ViewCB : register(b1) // Constant buffer bound to slot b1
 {
-	matrix viewMatrix;
+    matrix gViewMatrix;
 };
 
-struct VSInput
+struct VertexInput
 {
-	float3 pos : POSITION;
-	float age : TEXCOORD0;
-	float angle : TEXCOORD1;
-	float size : TEXCOORD2;
+    float3 Position : POSITION0;
+    float3 PreviousPos : POSITION1;
+    float Age : TEXCOORD0;
+    float Size : TEXCOORD1;
 };
 
-struct GSInput
+struct VertexOutput
 {
-	float4 pos : POSITION;
-	float age : TEXCOORD0;
-	float angle : TEXCOORD1;
-	float size : TEXCOORD2;
+    float4 Position : POSITION0;
+    float4 PreviousPos : POSITION1;
+    float Age : TEXCOORD0;
+    float Size : TEXCOORD1;
 };
 
-GSInput main(VSInput i)
+VertexOutput main(VertexInput input)
 {
-	GSInput o = (GSInput)0;
-	o.pos = float4(i.pos, 1.0f);
-	o.pos = mul(viewMatrix, o.pos);
-	o.age = i.age;
-	o.angle = i.angle;
-	o.size = i.size;
-	return o;
+    VertexOutput output;
+
+    // Transform current position
+    float4 worldPos = float4(input.Position, 1.0f);
+    output.Position = mul(gViewMatrix, worldPos);
+
+    // Transform previous position
+    float4 worldPrevPos = float4(input.PreviousPos, 1.0f);
+    output.PreviousPos = mul(gViewMatrix, worldPrevPos);
+
+    // Pass through age and size
+    output.Age = input.Age;
+    output.Size = input.Size;
+
+    return output;
 }
