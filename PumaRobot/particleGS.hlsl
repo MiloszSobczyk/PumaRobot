@@ -1,65 +1,74 @@
-cbuffer cbProj : register(b0) //Geometry Shader constant buffer slot 0
+cbuffer ProjCB : register(b0) // Projection matrix constant buffer
 {
-    matrix projMatrix;
+    matrix gProjMatrix;
 };
 
 struct GSInput
 {
-    float4 pos : POSITION0;
-    float4 prevpos : POSITION1;
-    float age : TEXCOORD0;
-    float size : TEXCOORD1;
+    float4 Position : POSITION0;
+    float4 PreviousPos : POSITION1;
+    float Age : TEXCOORD0;
+    float Size : TEXCOORD1;
 };
 
 struct PSInput
 {
-    float4 pos : SV_POSITION;
-    float2 tex1 : TEXCOORD0;
-    float2 tex2 : TEXCOORD1;
+    float4 Position : SV_POSITION;
+    float2 TexCoord1 : TEXCOORD0;
+    float2 TexCoord2 : TEXCOORD1;
 };
 
+static const float MIN_SIZE = 0.05f;
+static const float LIFETIME = 1.0f;
 
-static const float MinSize = 0.05f;
-static const float TimeToLive = 1.f;
 [maxvertexcount(4)]
-void main(point GSInput inArray[1], inout TriangleStream<PSInput> ostream)
+void main(point GSInput inVertices[1], inout TriangleStream<PSInput> TriStream)
 {
-    GSInput i = inArray[0];
-    PSInput o = (PSInput) 0;
+    GSInput input = inVertices[0];
+    PSInput output = (PSInput) 0;
 
-    float3 curr = i.pos.xyz;
-    float3 prev = i.prevpos.xyz;
+    // Extract positions
+    float3 currentPos = input.Position.xyz;
+    float3 prevPos = input.PreviousPos.xyz;
 
-    float3 dir = normalize(curr - prev);
-    prev = curr - (dir * MinSize);
-    
-    float3 camToTrail = normalize(-curr);
+    // Calculate direction and adjust previous position
+    float3 direction = normalize(currentPos - prevPos);
+    prevPos = currentPos - direction * MIN_SIZE;
 
-    float3 side = normalize(cross(dir, camToTrail));
+    // Camera-to-trail vector
+    float3 camToTrail = normalize(-currentPos);
 
+    // Calculate side vector
+    float3 sideVector = normalize(cross(direction, camToTrail));
+
+    // Offset to create width
     float halfWidth = 0.005f;
+    float3 offsets[2] = { -sideVector * halfWidth, sideVector * halfWidth };
 
-    float3 offsets[2] =
+    // Base positions and texture coordinates
+    float3 basePositions[2] = { prevPos, currentPos };
+    float2 texCoords[2] = { float2(0.0f, 0.0f), float2(1.0f, 0.0f) };
+
+    // Loop through the base positions (prev and current)
+    for (int posIndex = 0; posIndex < 2; ++posIndex)
     {
-        -side * halfWidth,
-        side * halfWidth
-    };
-
-    float3 basePos[2] = { prev, curr };
-    float2 texcoords[2] = { float2(0, 0), float2(1, 0) };
-
-    for (int j = 0; j < 2; ++j) // prev, curr
-    {
-        for (int k = 0; k < 2; ++k) // left, right
+        // Loop for left and right offsets
+        for (int offsetIndex = 0; offsetIndex < 2; ++offsetIndex)
         {
-            float3 worldPos = basePos[j] + offsets[k];
-            o.pos = mul(projMatrix, float4(worldPos, 1.0f));
-            o.tex1 = float2(texcoords[j].x, k);
-            o.tex2 = float2(i.age / TimeToLive, i.age / TimeToLive);
-            ostream.Append(o);
+            // Calculate world position based on offset
+            float3 worldPosition = basePositions[posIndex] + offsets[offsetIndex];
+
+            // Transform position with projection matrix
+            output.Position = mul(gProjMatrix, float4(worldPosition, 1.0f));
+
+            // Set texture coordinates
+            output.TexCoord1 = float2(texCoords[posIndex].x, offsetIndex);
+            output.TexCoord2 = float2(input.Age / LIFETIME, input.Age / LIFETIME);
+
+            // Append to the triangle stream
+            TriStream.Append(output);
         }
     }
 
-    ostream.RestartStrip();
+    TriStream.RestartStrip();
 }
-
