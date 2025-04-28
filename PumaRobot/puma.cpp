@@ -16,7 +16,8 @@ Puma::Puma(HINSTANCE appInstance)
 	m_cbViewMtx(m_device.CreateConstantBuffer<XMFLOAT4X4, 2>()),
 	m_cbSurfaceColor(m_device.CreateConstantBuffer<XMFLOAT4>()),
 	m_cbLightPos(m_device.CreateConstantBuffer<XMFLOAT4, 2>()),
-	m_vbParticleSystem(m_device.CreateVertexBuffer<ParticleVertex>(ParticleSystem::MAX_PARTICLES))
+	m_vbParticleSystem(m_device.CreateVertexBuffer<ParticleVertex>(ParticleSystem::MAX_PARTICLES)),
+	m_particleTexture(m_device.CreateShaderResourceView(L"resources/textures/rain.png"))
 {
 	//Projection matrix
 	auto s = m_window.getClientSize();
@@ -95,6 +96,16 @@ Puma::Puma(HINSTANCE appInstance)
 
 	m_device.context()->IASetInputLayout(m_inputlayout.get());
 	m_device.context()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	SamplerDescription sd;
+	// TODO : 0.01 Set to proper addressing (wrap) and filtering (16x anisotropic) modes of the sampler
+	sd.Filter = D3D11_FILTER_ANISOTROPIC;
+	sd.MaxAnisotropy = 16;
+	sd.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+	sd.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sd.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sd.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	m_samplerWrap = m_device.CreateSamplerState(sd);
 
 	//We have to make sure all shaders use constant buffers in the same slots!
 	//Not all slots will be use by each shader
@@ -311,12 +322,20 @@ void mini::gk2::Puma::DrawParticles()
 	XMStoreFloat4x4(&identityMtx, XMMatrixIdentity());
 	SetWorldMtx(identityMtx);
 
-	m_device.context()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP);
+	m_device.context()->IASetInputLayout(m_particleLayout.get());
+	SetShaders(m_particleVS, m_particlePS);
+	SetTextures({ m_particleTexture.get() }, m_samplerWrap);
+	m_device.context()->GSSetShader(m_particleGS.get(), nullptr, 0);
+	m_device.context()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 	unsigned int stride = sizeof(ParticleVertex);
 	unsigned int offset = 0;
 	auto vb = m_vbParticleSystem.get();
 	m_device.context()->IASetVertexBuffers(0, 1, &vb, &stride, &offset);
 	m_device.context()->Draw(m_particleSystem.particlesCount(), 0);
+
+	m_device.context()->GSSetShader(nullptr, nullptr, 0);
+	m_device.context()->IASetInputLayout(m_inputlayout.get());
+	m_device.context()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
 bool mini::gk2::Puma::HandleCameraInput(double dt)

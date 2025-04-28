@@ -10,12 +10,11 @@ using namespace gk2;
 using namespace DirectX;
 using namespace std;
 
-const D3D11_INPUT_ELEMENT_DESC ParticleVertex::Layout[4] =
+const D3D11_INPUT_ELEMENT_DESC ParticleVertex::Layout[3] =
 {
-	{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	{ "TEXCOORD", 0, DXGI_FORMAT_R32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	{ "TEXCOORD", 1, DXGI_FORMAT_R32_FLOAT, 0, 16, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	{ "TEXCOORD", 2, DXGI_FORMAT_R32_FLOAT, 0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+	{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(ParticleVertex, Pos), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	{ "POSITION", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(ParticleVertex, PreviousPos), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	{ "TEXCOORD", 0, DXGI_FORMAT_R32_FLOAT,          0, offsetof(ParticleVertex, Age), D3D11_INPUT_PER_VERTEX_DATA, 0 },
 };
 
 const XMFLOAT3 ParticleSystem::EMITTER_DIR = XMFLOAT3(0.8f, 0.5f, 0.0f);
@@ -74,6 +73,7 @@ Particle ParticleSystem::RandomParticle()
 	Particle p;
 	// DONE : 1.27 Setup initial particle properties
 	p.Vertex.Pos = m_emitterPos;
+	p.Vertex.PreviousPos = m_emitterPos;
 	p.Vertex.Age = 0.0f;
 	p.Velocities.Velocity = RandomVelocity();
 

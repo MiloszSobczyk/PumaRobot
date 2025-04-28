@@ -14,7 +14,7 @@ namespace mini
 			DirectX::XMFLOAT3 PreviousPos;
 			float Age;
 			
-			static const D3D11_INPUT_ELEMENT_DESC Layout[4];
+			static const D3D11_INPUT_ELEMENT_DESC Layout[3];
 
 			ParticleVertex() : Pos(0.0f, 0.0f, 0.0f), Age(0.0f), PreviousPos(0.0f, 0.0f, 0.0f) { }
 		};
