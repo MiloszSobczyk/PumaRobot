@@ -484,5 +484,17 @@ void mini::gk2::Puma::HandlePumaMovement(double dt)
 
 	if (inAnimation) return;
 
-	//TODO: Handle Puma movement
+	static const float velocity = 5.f;
+
+	for (int i = 0; i < 5; i++)
+	{
+		if (actualKeyboardState.isKeyDown(DIK_1 + 2 * i))
+		{
+			angles[i + 1] += velocity * dt;
+		}
+		if (actualKeyboardState.isKeyDown(DIK_2 + 2 * i))
+		{
+			angles[i + 1] -= velocity * dt;
+		}
+	}
 }
