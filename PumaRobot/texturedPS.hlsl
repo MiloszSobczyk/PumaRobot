@@ -9,5 +9,7 @@ struct PSInput
 
 float4 main(PSInput i) : SV_TARGET
 {
-    return mirrorTex.Sample(mirrorSampler, i.uv);
+    float4 c = mirrorTex.Sample(mirrorSampler, i.uv);
+    c.a *= 0.2;
+    return c;
 }

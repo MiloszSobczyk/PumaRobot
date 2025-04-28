@@ -312,8 +312,7 @@ void mini::gk2::Puma::DrawModel()
 
 void Puma::DrawScene()
 {
-	SetShaders(m_phongVS, m_phongPS);
-	//DrawMirroredScene();
+	DrawMirroredScene();
 
 	UpdateCameraCB();
 
@@ -331,6 +330,8 @@ void mini::gk2::Puma::DrawMirroredScene()
 	DrawMirror();
 
 	m_device.context()->OMSetDepthStencilState(m_dssStencilTest.get(), 1);
+
+	SetShaders(m_phongVS, m_phongPS);
 
 	XMMATRIX mirror = XMMatrixScaling(1.f, 1.f, -1.f);
 	XMMATRIX model = XMLoadFloat4x4(&mirrorTransform);
@@ -358,9 +359,11 @@ void mini::gk2::Puma::DrawMirroredScene()
 	m_device.context()->RSSetState(nullptr);
 	m_device.context()->OMSetDepthStencilState(nullptr, 0);
 
-	m_device.context()->OMSetBlendState(m_bsAlpha.get(), nullptr, 0xFFFFFFFF);
+	m_device.context()->OMSetBlendState(m_bsAdd.get(), nullptr, 0xFFFFFFFF);
 	DrawMirror();
 	m_device.context()->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFF);
+
+	SetShaders(m_phongVS, m_phongPS);
 }
 
 void Puma::Render()
