@@ -10,11 +10,12 @@ using namespace gk2;
 using namespace DirectX;
 using namespace std;
 
-const D3D11_INPUT_ELEMENT_DESC ParticleVertex::Layout[3] =
+const D3D11_INPUT_ELEMENT_DESC ParticleVertex::Layout[4] =
 {
-	{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(ParticleVertex, Pos), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	{ "POSITION", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(ParticleVertex, PreviousPos), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	{ "TEXCOORD", 0, DXGI_FORMAT_R32_FLOAT,          0, offsetof(ParticleVertex, Age), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	{ "POSITION",1, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	{ "TEXCOORD", 0, DXGI_FORMAT_R32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	{ "TEXCOORD", 1, DXGI_FORMAT_R32_FLOAT, 0, 28, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 };
 
 const XMFLOAT3 ParticleSystem::EMITTER_DIR = XMFLOAT3(0.8f, 0.5f, 0.0f);
@@ -28,6 +29,7 @@ const float ParticleSystem::PARTICLE_SCALE = 1.0f;
 const float ParticleSystem::MIN_ANGLE_VEL = -XM_PI;
 const float ParticleSystem::MAX_ANGLE_VEL = XM_PI;
 const int ParticleSystem::MAX_PARTICLES = 500;
+const float ParticleSystem::GRAVITY = 3.f;
 
 vector<ParticleVertex> ParticleSystem::Update(float dt, DirectX::XMFLOAT4 cameraPosition, DirectX::XMFLOAT3 emitterPos)
 {
@@ -76,21 +78,20 @@ Particle ParticleSystem::RandomParticle()
 	p.Vertex.PreviousPos = m_emitterPos;
 	p.Vertex.Age = 0.0f;
 	p.Velocities.Velocity = RandomVelocity();
+	p.Vertex.Size = PARTICLE_SIZE;
 
 	return p;
 }
 
 void ParticleSystem::UpdateParticle(Particle& p, float dt)
 {
-	XMVECTOR gravity = { 0.f, 3.f * dt, 0.f, 0.f };
-
 	// DONE : 1.28 Update particle properties
-	auto pos = XMLoadFloat3(&p.Vertex.Pos);
-	auto vel = XMLoadFloat3(&p.Velocities.Velocity);
-	XMStoreFloat3(&p.Vertex.PreviousPos, pos);
-	XMStoreFloat3(&p.Vertex.Pos, XMVectorAdd(pos, vel * dt));
 	p.Vertex.Age += dt;
-	XMStoreFloat3(&p.Velocities.Velocity, vel - gravity);
+	p.Velocities.Velocity.y -= GRAVITY * dt;
+	p.Vertex.PreviousPos = p.Vertex.Pos;
+	p.Vertex.Pos.x += p.Velocities.Velocity.x * dt;
+	p.Vertex.Pos.y += p.Velocities.Velocity.y * dt;
+	p.Vertex.Pos.z += p.Velocities.Velocity.z * dt;
 }
 
 vector<ParticleVertex> ParticleSystem::GetParticleVerts(DirectX::XMFLOAT4 cameraPosition)

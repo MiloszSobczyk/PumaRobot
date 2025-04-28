@@ -13,10 +13,11 @@ namespace mini
 			DirectX::XMFLOAT3 Pos;
 			DirectX::XMFLOAT3 PreviousPos;
 			float Age;
-			
-			static const D3D11_INPUT_ELEMENT_DESC Layout[3];
+			float Size;
 
-			ParticleVertex() : Pos(0.0f, 0.0f, 0.0f), Age(0.0f), PreviousPos(0.0f, 0.0f, 0.0f) { }
+			static const D3D11_INPUT_ELEMENT_DESC Layout[4];
+
+			ParticleVertex() : Pos(0.0f, 0.0f, 0.0f), Age(0.0f), PreviousPos(0.0f, 0.0f, 0.0f), Size(0.0f) { }
 		};
 
 		struct ParticleVelocities
@@ -57,6 +58,7 @@ namespace mini
 			static const float PARTICLE_SCALE;	//size += size*scale*dtime
 			static const float MIN_ANGLE_VEL;	//minimal rotation speed
 			static const float MAX_ANGLE_VEL;	//maximal rotation speed
+			static const float GRAVITY;	//maximal rotation speed
 
 			DirectX::XMFLOAT3 m_emitterPos;
 			float m_particlesToCreate;

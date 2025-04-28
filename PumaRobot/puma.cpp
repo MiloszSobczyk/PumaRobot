@@ -318,10 +318,6 @@ void mini::gk2::Puma::DrawParticles()
 	if (m_particleSystem.particlesCount() == 0)
 		return;
 
-	XMFLOAT4X4 identityMtx;
-	XMStoreFloat4x4(&identityMtx, XMMatrixIdentity());
-	SetWorldMtx(identityMtx);
-
 	m_device.context()->IASetInputLayout(m_particleLayout.get());
 	SetShaders(m_particleVS, m_particlePS);
 	SetTextures({ m_particleTexture.get() }, m_samplerWrap);
@@ -331,6 +327,7 @@ void mini::gk2::Puma::DrawParticles()
 	unsigned int offset = 0;
 	auto vb = m_vbParticleSystem.get();
 	m_device.context()->IASetVertexBuffers(0, 1, &vb, &stride, &offset);
+	m_device.context()->OMSetBlendState(m_bsAdd.get(), nullptr, 0xFFFFFFFF);
 	m_device.context()->Draw(m_particleSystem.particlesCount(), 0);
 
 	m_device.context()->GSSetShader(nullptr, nullptr, 0);

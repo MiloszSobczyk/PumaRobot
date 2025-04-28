@@ -1,27 +1,32 @@
 cbuffer cbView : register(b1) //Vertex Shader constant buffer slot 1
 {
-	matrix viewMatrix;
+    matrix viewMatrix;
 };
 
 struct VSInput
 {
-    float3 Pos : POSITION0;
-    float3 PreviousPos : POSITION1;
-    float Age : TEXCOORD0;
+    float3 pos : POSITION0;
+    float3 prevpos : POSITION1;
+    float age : TEXCOORD0;
+    float size : TEXCOORD1;
 };
 
 struct GSInput
 {
-    float3 Pos : POSITION0;
-    float3 PreviousPos : POSITION1;
-    float Age : TEXCOORD0;
+    float4 pos : POSITION0;
+    float4 prevpos : POSITION1;
+    float age : TEXCOORD0;
+    float size : TEXCOORD1;
 };
 
-GSInput main(VSInput input)
+GSInput main(VSInput i)
 {
-    GSInput output;
-    output.Pos = mul(viewMatrix, float4(input.Pos, 1.0)).xyz;
-    output.PreviousPos = mul(viewMatrix, float4(input.PreviousPos, 1.0)).xyz;
-    output.Age = input.Age;
-    return output;
+    GSInput o = (GSInput) 0;
+    o.pos = float4(i.pos, 1.0f);
+    o.pos = mul(viewMatrix, o.pos);
+    o.prevpos = float4(i.prevpos, 1.0f);
+    o.prevpos = mul(viewMatrix, o.prevpos);
+    o.age = i.age;
+    o.size = i.size;
+    return o;
 }
